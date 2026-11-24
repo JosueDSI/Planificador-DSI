@@ -221,13 +221,13 @@ export default function App() {
   const visibles = useMemo(() => {
     const q = filtros.q.trim().toLowerCase();
     return actividades.filter((actividad) => {
-      const texto = `${actividad.titulo} ${actividad.descripcion} ${actividad.observaciones}`.toLowerCase();
+      const texto = `${actividad.titulo || ""} ${actividad.descripcion || ""} ${actividad.observaciones || ""}`.toLowerCase();
       return (
         (!q || texto.includes(q)) &&
-        (!filtros.categoria || actividad.categoria.id === Number(filtros.categoria)) &&
-        (!filtros.prioridad || actividad.prioridad.id === Number(filtros.prioridad)) &&
+        (!filtros.categoria || actividad.categoria?.id === Number(filtros.categoria)) &&
+        (!filtros.prioridad || actividad.prioridad?.id === Number(filtros.prioridad)) &&
         (!filtros.persona || actividad.asignado_a?.id === Number(filtros.persona)) &&
-        (!filtros.estado || actividad.estado.id === Number(filtros.estado))
+        (!filtros.estado || actividad.estado?.id === Number(filtros.estado))
       );
     });
   }, [actividades, filtros]);
@@ -302,6 +302,13 @@ export default function App() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
+
+  function abrirNueva() {
+    setEditandoId(null);
+    setNota("");
+    setAviso("");
+    setForm(aFormulario(null, { ...catalogo, usuarioActual }));
   }
 
   function abrir(actividad) {
