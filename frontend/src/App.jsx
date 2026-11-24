@@ -116,7 +116,7 @@ export default function App() {
   const [actividades, setActividades] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [vista, setVista] = useState("resumen");
-  const [filtros, setFiltros] = useState({ q: "", categoria: "", prioridad: "", persona: "" });
+  const [filtros, setFiltros] = useState({ q: "", categoria: "", prioridad: "", persona: "", estado: "" });
   const [dia, setDia] = useState(hoyIso);
 
   // Sesión y Auth
@@ -226,7 +226,8 @@ export default function App() {
         (!q || texto.includes(q)) &&
         (!filtros.categoria || actividad.categoria.id === Number(filtros.categoria)) &&
         (!filtros.prioridad || actividad.prioridad.id === Number(filtros.prioridad)) &&
-        (!filtros.persona || actividad.asignado_a?.id === Number(filtros.persona))
+        (!filtros.persona || actividad.asignado_a?.id === Number(filtros.persona)) &&
+        (!filtros.estado || actividad.estado.id === Number(filtros.estado))
       );
     });
   }, [actividades, filtros]);
@@ -267,11 +268,40 @@ export default function App() {
     return { total, cerradas, progreso, pendientes, prioritarias, vencidasCount, cumplimiento, porCategoria, porEstado };
   }, [visibles, catalogo]);
 
-  function abrirNueva() {
-    setEditandoId(null);
-    setNota("");
-    setAviso("");
-    setForm(aFormulario(null, { ...catalogo, usuarioActual }));
+  function exportarAgendaDia() {
+    const actividadesDia = visibles.filter((item) => item.fecha === dia);
+    if (actividadesDia.length === 0) {
+      alert("No hay actividades registradas en la fecha " + dia + " para exportar.");
+      return;
+    }
+
+    const encabezados = ["Clave", "Título", "Fecha", "Hora Inicio", "Hora Fin", "Categoría", "Prioridad", "Estado", "Responsable", "Solicitante", "Subtareas Hechas", "Total Subtareas", "Observaciones"];
+    const filas = actividadesDia.map((act) => [
+      `"${act.clave}"`,
+      `"${(act.titulo || "").replace(/"/g, '""')}"`,
+      `"${act.fecha}"`,
+      `"${act.hora_inicio}"`,
+      `"${act.hora_fin}"`,
+      `"${act.categoria.nombre}"`,
+      `"${act.prioridad.nombre}"`,
+      `"${act.estado.nombre}"`,
+      `"${(act.asignado_a?.nombre || "Sin asignar").replace(/"/g, '""')}"`,
+      `"${(act.reportado_por?.nombre || "").replace(/"/g, '""')}"`,
+      act.checklist.filter((c) => c.hecho).length,
+      act.checklist.length,
+      `"${(act.observaciones || "").replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = "\uFEFF" + [encabezados.join(";"), ...filas.map((f) => f.join(";"))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `planificador_dsi_agenda_${dia}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   function abrir(actividad) {
@@ -475,13 +505,29 @@ export default function App() {
               {catalogo.prioridades.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
             </select>
           </div>
-          <div className="col-md-3">
+          <div className="col-md-2">
             <select className="form-select" value={filtros.persona} onChange={(evento) => setFiltros({ ...filtros, persona: evento.target.value })}>
               <option value="">Responsable</option>
               {catalogo.usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>)}
             </select>
           </div>
-          <div className="col-md-auto">
+          <div className="col-md-2">
+            <select className="form-select" value={filtros.estado} onChange={(evento) => setFiltros({ ...filtros, estado: evento.target.value })}>
+              <option value="">Estado</option>
+              {catalogo.estados.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+            </select>
+          </div>
+          <div className="col-md-auto d-flex gap-2">
+            {(filtros.q || filtros.categoria || filtros.prioridad || filtros.persona || filtros.estado) && (
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                type="button"
+                onClick={() => setFiltros({ q: "", categoria: "", prioridad: "", persona: "", estado: "" })}
+                title="Limpiar todos los filtros"
+              >
+                Limpiar
+              </button>
+            )}
             <button className="btn btn-primary" type="button" onClick={abrirNueva}>
               + Nueva actividad
             </button>
@@ -499,135 +545,165 @@ export default function App() {
 
       {vista === "resumen" && (
         <>
-          {/* Tarjetas KPI Superiores Mejoradas con Gradientes e Iconos */}
-          <div className="row g-3 mb-4">
-            <div className="col-6 col-md-2">
+          {/* Tarjetas KPI Superiores: Grid ajustado sin desbordes, con colores sólidos contrastados y clicables */}
+          <div className="row g-2 g-xl-3 mb-4">
+            <div className="col-6 col-md-4 col-xl-2">
               <div
-                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                className={`card card-body text-start border shadow-sm h-100 p-2 p-xl-3 ${!filtros.estado && !filtros.prioridad ? "ring-active" : ""}`}
                 style={{
-                  background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
-                  borderLeft: "4px solid #3b82f6 !important",
+                  background: "#ffffff",
+                  borderLeft: "5px solid #2563eb !important",
                   cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
-                onClick={() => setFiltros({ ...filtros, categoria: "", prioridad: "", persona: "" })}
-                title="Ver todas las actividades"
+                onClick={() => setFiltros({ ...filtros, categoria: "", prioridad: "", persona: "", estado: "" })}
+                title="Clic para ver todas las actividades"
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-bold">TOTAL</span>
-                  <span className="badge bg-primary-subtle text-primary">Actividades</span>
+                  <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>TOTAL</span>
+                  <span className="badge" style={{ background: "#dbeafe", color: "#1d4ed8", fontSize: "0.68rem" }}>Área</span>
                 </div>
-                <strong className="fs-2 text-primary">{resumen.total}</strong>
-                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Registradas en el área</span>
+                <strong className="fs-2 text-dark my-1" style={{ color: "#1e3a8a !important" }}>{resumen.total}</strong>
+                <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Todas las tareas</span>
               </div>
             </div>
 
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-4 col-xl-2">
               <div
-                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                className={`card card-body text-start border shadow-sm h-100 p-2 p-xl-3 ${filtros.estado === String(catalogo.estados.find(e => e.columna === "por_hacer" || e.columna === "en_espera")?.id || "") ? "border-warning" : ""}`}
                 style={{
-                  background: "linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)",
-                  borderLeft: "4px solid #f59e0b !important",
+                  background: "#ffffff",
+                  borderLeft: "5px solid #d97706 !important",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
+                onClick={() => {
+                  const estadoObj = catalogo.estados.find((e) => e.columna === "por_hacer");
+                  setFiltros({ ...filtros, estado: estadoObj ? String(estadoObj.id) : "", prioridad: "" });
+                }}
+                title="Clic para filtrar actividades pendientes"
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-bold">PENDIENTES</span>
-                  <span className="badge bg-warning-subtle text-warning">Espera/Inicio</span>
+                  <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>PENDIENTES</span>
+                  <span className="badge" style={{ background: "#fef3c7", color: "#b45309", fontSize: "0.68rem" }}>Inicio/Espera</span>
                 </div>
-                <strong className="fs-2 text-warning">{resumen.pendientes}</strong>
-                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Por iniciar o en espera</span>
+                <strong className="fs-2 my-1" style={{ color: "#b45309" }}>{resumen.pendientes}</strong>
+                <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Por iniciar o espera</span>
               </div>
             </div>
 
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-4 col-xl-2">
               <div
-                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
-                  background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)",
-                  borderLeft: "4px solid #10b981 !important",
+                  background: "#ffffff",
+                  borderLeft: "5px solid #0284c7 !important",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
+                onClick={() => {
+                  const estadoObj = catalogo.estados.find((e) => e.columna === "en_progreso");
+                  setFiltros({ ...filtros, estado: estadoObj ? String(estadoObj.id) : "", prioridad: "" });
+                }}
+                title="Clic para filtrar actividades en progreso"
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-bold">EN PROGRESO</span>
-                  <span className="badge bg-info-subtle text-info">En curso</span>
+                  <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>EN PROGRESO</span>
+                  <span className="badge" style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "0.68rem" }}>En curso</span>
                 </div>
-                <strong className="fs-2 text-info">{resumen.progreso}</strong>
-                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Actualmente en ejecución</span>
+                <strong className="fs-2 my-1" style={{ color: "#0369a1" }}>{resumen.progreso}</strong>
+                <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>En ejecución</span>
               </div>
             </div>
 
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-4 col-xl-2">
               <div
-                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
-                  background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
-                  borderLeft: "4px solid #059669 !important",
+                  background: "#ffffff",
+                  borderLeft: "5px solid #059669 !important",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
+                onClick={() => {
+                  const estadoObj = catalogo.estados.find((e) => e.es_cierre);
+                  setFiltros({ ...filtros, estado: estadoObj ? String(estadoObj.id) : "", prioridad: "" });
+                }}
+                title="Clic para filtrar actividades completadas"
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-bold">COMPLETADAS</span>
-                  <span className="badge bg-success-subtle text-success">Listas</span>
+                  <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>COMPLETADAS</span>
+                  <span className="badge" style={{ background: "#d1fae5", color: "#047857", fontSize: "0.68rem" }}>Listas</span>
                 </div>
-                <strong className="fs-2 text-success">{resumen.cerradas}</strong>
-                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Actividades finalizadas</span>
+                <strong className="fs-2 my-1" style={{ color: "#047857" }}>{resumen.cerradas}</strong>
+                <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Finalizadas</span>
               </div>
             </div>
 
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-4 col-xl-2">
               <div
-                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
-                  background: "linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)",
-                  borderLeft: "4px solid #8b5cf6 !important",
+                  background: "#ffffff",
+                  borderLeft: "5px solid #7c3aed !important",
                 }}
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-bold">CUMPLIMIENTO</span>
-                  <span className="badge bg-purple-subtle text-dark" style={{ background: "#ede9fe" }}>Global</span>
+                  <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>CUMPLIMIENTO</span>
+                  <span className="badge" style={{ background: "#ede9fe", color: "#6d28d9", fontSize: "0.68rem" }}>Global</span>
                 </div>
-                <strong className="fs-2 text-dark">{resumen.cumplimiento}%</strong>
-                <div className="progress mt-1" style={{ height: 5 }}>
-                  <div className="progress-bar bg-success" style={{ width: `${resumen.cumplimiento}%` }}></div>
+                <strong className="fs-2 my-1" style={{ color: "#6d28d9" }}>{resumen.cumplimiento}%</strong>
+                <div className="progress mt-1" style={{ height: 6, background: "#f3e8ff" }}>
+                  <div className="progress-bar" style={{ width: `${resumen.cumplimiento}%`, background: "#7c3aed" }}></div>
                 </div>
               </div>
             </div>
 
-            <div className="col-6 col-md-2">
+            <div className="col-6 col-md-4 col-xl-2">
               <div
-                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
-                  background: "linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)",
-                  borderLeft: "4px solid #e11d48 !important",
+                  background: "#ffffff",
+                  borderLeft: "5px solid #e11d48 !important",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
                 }}
+                onClick={() => {
+                  const alta = catalogo.prioridades.find((p) => p.nombre === "Alta");
+                  setFiltros({ ...filtros, prioridad: alta ? String(alta.id) : "", estado: "" });
+                }}
+                title="Clic para filtrar actividades de prioridad Alta"
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="text-secondary small fw-bold">PRIORITARIAS</span>
-                  <span className="badge bg-danger-subtle text-danger">Alta</span>
+                  <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>PRIORITARIAS</span>
+                  <span className="badge" style={{ background: "#ffe4e6", color: "#be123c", fontSize: "0.68rem" }}>Alta</span>
                 </div>
-                <strong className="fs-2 text-danger">{resumen.prioritarias}</strong>
-                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Requieren atención</span>
+                <strong className="fs-2 my-1" style={{ color: "#be123c" }}>{resumen.prioritarias}</strong>
+                <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Requieren atención</span>
               </div>
             </div>
           </div>
 
-          {/* Gráficos Interactivos de Distribución: Estados y Categorías */}
+          {/* Gráficos Interactivos con Filtros Bidireccionales */}
           <div className="row g-3 mb-4">
             {/* Gráfica Circular / Donut por Estado */}
             <div className="col-lg-6">
-              <section className="card card-body border-0 shadow-sm h-100">
+              <section className="card card-body border shadow-sm h-100 bg-white">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h2 className="h6 fw-bold mb-0">Distribución por Estado</h2>
-                  <span className="text-muted small">Avance del flujo</span>
+                  <h2 className="h6 fw-bold mb-0 text-dark">Distribución por Estado</h2>
+                  <span className="text-muted small">Haz clic para filtrar</span>
                 </div>
                 <div className="row align-items-center">
-                  <div className="col-sm-5 text-center position-relative">
-                    <svg viewBox="0 0 36 36" style={{ width: "130px", height: "130px", transform: "rotate(-90deg)" }}>
-                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="3.5" />
+                  <div className="col-sm-5 text-center position-relative my-2">
+                    <svg viewBox="0 0 36 36" style={{ width: "135px", height: "135px", transform: "rotate(-90deg)" }}>
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" strokeWidth="3.8" />
                       {(() => {
                         let offset = 0;
-                        return resumen.porEstado.map((est) => {
+                        return (resumen.porEstado || []).map((est) => {
                           const strokeDasharray = `${est.porcentaje} ${100 - est.porcentaje}`;
                           const currentOffset = offset;
                           offset += est.porcentaje;
+                          const esSeleccionado = filtros.estado === String(est.id);
                           return (
                             <circle
                               key={est.id}
@@ -636,10 +712,11 @@ export default function App() {
                               r="15.915"
                               fill="none"
                               stroke={est.color}
-                              strokeWidth="3.5"
+                              strokeWidth={esSeleccionado ? "5.5" : "3.8"}
                               strokeDasharray={strokeDasharray}
                               strokeDashoffset={-currentOffset}
-                              style={{ transition: "stroke-dashoffset 0.4s ease" }}
+                              style={{ cursor: "pointer", transition: "all 0.3s ease" }}
+                              onClick={() => setFiltros({ ...filtros, estado: filtros.estado === String(est.id) ? "" : String(est.id) })}
                             />
                           );
                         });
@@ -649,29 +726,34 @@ export default function App() {
                       className="position-absolute top-50 start-50 translate-middle text-center"
                       style={{ pointerEvents: "none" }}
                     >
-                      <span className="fs-5 fw-bold d-block text-dark">{resumen.total}</span>
-                      <span className="text-secondary" style={{ fontSize: "0.65rem" }}>Total</span>
+                      <span className="fs-4 fw-bold d-block text-dark lh-1">{resumen.total}</span>
+                      <span className="text-muted fw-semibold" style={{ fontSize: "0.68rem" }}>ACTIVIDADES</span>
                     </div>
                   </div>
                   <div className="col-sm-7">
                     <div className="d-flex flex-column gap-2">
-                      {resumen.porEstado.map((est) => (
-                        <div
-                          key={est.id}
-                          className="d-flex justify-content-between align-items-center p-2 rounded"
-                          style={{ background: "#f8fafc", cursor: "pointer" }}
-                          onClick={() => setVista("tablero")}
-                          title={`Ver columna ${est.nombre} en el tablero`}
-                        >
-                          <div className="d-flex align-items-center gap-2">
-                            <span style={{ width: 10, height: 10, borderRadius: "50%", background: est.color }}></span>
-                            <span className="small fw-semibold text-dark">{est.nombre}</span>
+                      {(resumen.porEstado || []).map((est) => {
+                        const activo = filtros.estado === String(est.id);
+                        return (
+                          <div
+                            key={est.id}
+                            className={`d-flex justify-content-between align-items-center p-2 rounded border ${activo ? "bg-light border-primary" : "bg-white"}`}
+                            style={{ cursor: "pointer", transition: "all 0.15s ease" }}
+                            onClick={() => setFiltros({ ...filtros, estado: activo ? "" : String(est.id) })}
+                            title={`Clic para filtrar por ${est.nombre}`}
+                          >
+                            <div className="d-flex align-items-center gap-2">
+                              <span style={{ width: 12, height: 12, borderRadius: "50%", background: est.color }}></span>
+                              <span className={`small ${activo ? "fw-bold text-primary" : "fw-medium text-dark"}`}>
+                                {est.nombre}
+                              </span>
+                            </div>
+                            <span className="badge text-dark bg-light border fw-bold" style={{ fontSize: "0.75rem" }}>
+                              {est.cantidad} ({est.porcentaje}%)
+                            </span>
                           </div>
-                          <span className="badge bg-white text-dark border">
-                            {est.cantidad} ({est.porcentaje}%)
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -680,36 +762,39 @@ export default function App() {
 
             {/* Barras de Actividades por Categoría */}
             <div className="col-lg-6">
-              <section className="card card-body border-0 shadow-sm h-100">
+              <section className="card card-body border shadow-sm h-100 bg-white">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h2 className="h6 fw-bold mb-0">Actividades por Categoría</h2>
-                  <span className="text-muted small">Especialidad</span>
+                  <h2 className="h6 fw-bold mb-0 text-dark">Actividades por Categoría</h2>
+                  <span className="text-muted small">Haz clic para filtrar</span>
                 </div>
                 <div className="d-flex flex-column gap-2 justify-content-center h-100">
-                  {resumen.porCategoria.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="p-1"
-                      style={{ cursor: "pointer" }}
-                      onClick={() => setFiltros({ ...filtros, categoria: String(cat.id) })}
-                      title={`Filtrar por ${cat.nombre}`}
-                    >
-                      <div className="d-flex justify-content-between small mb-1">
-                        <span className="fw-medium text-dark">{cat.nombre}</span>
-                        <span className="text-secondary">{cat.cantidad} act. ({cat.porcentaje}%)</span>
+                  {(resumen.porCategoria || []).map((cat) => {
+                    const activo = filtros.categoria === String(cat.id);
+                    return (
+                      <div
+                        key={cat.id}
+                        className={`p-2 rounded border ${activo ? "bg-light border-primary" : "bg-white"}`}
+                        style={{ cursor: "pointer", transition: "all 0.15s ease" }}
+                        onClick={() => setFiltros({ ...filtros, categoria: activo ? "" : String(cat.id) })}
+                        title={`Clic para filtrar por ${cat.nombre}`}
+                      >
+                        <div className="d-flex justify-content-between small mb-1">
+                          <span className={`${activo ? "fw-bold text-primary" : "fw-semibold text-dark"}`}>{cat.nombre}</span>
+                          <span className="text-secondary fw-bold">{cat.cantidad} act. ({cat.porcentaje}%)</span>
+                        </div>
+                        <div className="progress" style={{ height: 8, background: "#f1f5f9" }}>
+                          <div
+                            className="progress-bar"
+                            style={{
+                              width: `${cat.porcentaje}%`,
+                              background: cat.color,
+                              borderRadius: 4,
+                            }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="progress" style={{ height: 8, background: "#f1f5f9" }}>
-                        <div
-                          className="progress-bar"
-                          style={{
-                            width: `${cat.porcentaje}%`,
-                            background: cat.color,
-                            borderRadius: 4,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             </div>
@@ -824,17 +909,34 @@ export default function App() {
       )}
 
       {vista === "agenda" && (
-        <section className="card card-body border-0 shadow-sm">
-          <div className="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3 pb-2 border-bottom">
-            <label className="small text-secondary mb-0">
-              <span className="d-block mb-1 fw-bold text-dark">Día:</span>
-              <input className="form-control form-control-sm" type="date" value={dia} onChange={(evento) => setDia(evento.target.value)} />
-            </label>
-            <div className="text-secondary small">
-              Jornada {catalogo.area.jornada_inicio}–{catalogo.area.jornada_fin} · Agendado {Math.floor(ocupado / 60)}h {ocupado % 60}m · Disponible {Math.floor(libre / 60)}h {libre % 60}m
+        <section className="card card-body border-0 shadow-sm bg-white">
+          <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3 pb-3 border-bottom">
+            <div className="d-flex align-items-end gap-3">
+              <label className="small text-secondary mb-0">
+                <span className="d-block mb-1 fw-bold text-dark">Día de agenda:</span>
+                <input className="form-control form-control-sm" type="date" value={dia} onChange={(evento) => setDia(evento.target.value)} />
+              </label>
+              <button
+                type="button"
+                className="btn btn-outline-success btn-sm d-flex align-items-center gap-1"
+                onClick={exportarAgendaDia}
+                title="Descargar reporte en formato CSV (Excel) de las actividades de este día"
+              >
+                <span>📊</span> Exportar tareas del día (.CSV)
+              </button>
+            </div>
+            <div className="text-secondary small bg-light p-2 rounded border">
+              Jornada <strong>{catalogo.area.jornada_inicio}–{catalogo.area.jornada_fin}</strong> · Agendado: <strong>{Math.floor(ocupado / 60)}h {ocupado % 60}m</strong> · Disponible: <strong>{Math.floor(libre / 60)}h {libre % 60}m</strong>
             </div>
           </div>
-          {delDia.length === 0 && <p className="text-secondary mb-0 py-3 text-center">Este día no tiene actividades.</p>}
+          {delDia.length === 0 && (
+            <div className="text-center py-5">
+              <p className="text-secondary mb-1">No hay actividades agendadas para el {dia}.</p>
+              <button type="button" className="btn btn-link btn-sm text-decoration-none" onClick={abrirNueva}>
+                + Agendar nueva actividad
+              </button>
+            </div>
+          )}
           {delDia.map((item) => (
             <div key={item.id} className="d-flex gap-3 border-bottom py-2 align-items-center">
               <div className="hora text-secondary small fw-bold" style={{ width: 110 }}>{item.hora_inicio}–{item.hora_fin}</div>
