@@ -1,0 +1,23 @@
+body {
+  background: #f4f6f9;
+}
+
+.columna {
+  background: #eef1f6;
+  border-radius: 12px;
+  min-height: 240px;
+  padding: 12px;
+}
+
+.tarjeta {
+  border-left-width: 4px;
+  cursor: grab;
+}
+
+.tarjeta.vencida {
+  background: #fff5f5;
+}
+
+.hora {
+  font-variant-numeric: tabular-nums;
+}
