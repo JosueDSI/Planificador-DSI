@@ -234,9 +234,35 @@ export default function App() {
     const progreso = visibles.filter((item) => item.estado.columna === "en_progreso").length;
     const pendientes = visibles.filter((item) => item.estado.columna === "por_hacer" || item.estado.columna === "en_espera").length;
     const prioritarias = visibles.filter((item) => item.prioridad.nombre === "Alta" && !item.estado.es_cierre).length;
+    const vencidasCount = visibles.filter((item) => vencida(item)).length;
     const cumplimiento = total ? Math.round((cerradas * 100) / total) : 0;
-    return { total, cerradas, progreso, pendientes, prioritarias, cumplimiento };
-  }, [visibles]);
+
+    // Métricas por categoría
+    const porCategoria = (catalogo?.categorias || []).map((cat) => {
+      const cant = visibles.filter((a) => a.categoria.id === cat.id).length;
+      return { ...cat, cantidad: cant, porcentaje: total ? Math.round((cant * 100) / total) : 0 };
+    }).filter((c) => c.cantidad > 0);
+
+    // Métricas por estado para gráfica circular / donut
+    const porEstado = (catalogo?.estados || []).map((est) => {
+      const cant = visibles.filter((a) => a.estado.id === est.id).length;
+      return {
+        ...est,
+        cantidad: cant,
+        porcentaje: total ? Math.round((cant * 100) / total) : 0,
+        color:
+          est.columna === "completado"
+            ? "#10b981"
+            : est.columna === "en_progreso"
+            ? "#3b82f6"
+            : est.columna === "en_espera"
+            ? "#f59e0b"
+            : "#64748b",
+      };
+    });
+
+    return { total, cerradas, progreso, pendientes, prioritarias, vencidasCount, cumplimiento, porCategoria, porEstado };
+  }, [visibles, catalogo]);
 
   function abrirNueva() {
     setEditandoId(null);
@@ -459,69 +485,302 @@ export default function App() {
 
       {vista === "resumen" && (
         <>
-          <div className="row g-3 mb-3">
-            {[
-              [resumen.total, "Total"],
-              [resumen.pendientes, "Pendientes"],
-              [resumen.progreso, "En progreso"],
-              [resumen.cerradas, "Completadas"],
-              [`${resumen.cumplimiento}%`, "Cumplimiento"],
-              [resumen.prioritarias, "Prioritarias"],
-            ].map(([valor, etiqueta]) => (
-              <div className="col-6 col-md-2" key={etiqueta}>
-                <div className="card card-body text-center border-0 shadow-sm">
-                  <strong className="fs-3">{valor}</strong>
-                  <span className="text-secondary small">{etiqueta}</span>
+          {/* Tarjetas KPI Superiores Mejoradas con Gradientes e Iconos */}
+          <div className="row g-3 mb-4">
+            <div className="col-6 col-md-2">
+              <div
+                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                style={{
+                  background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
+                  borderLeft: "4px solid #3b82f6 !important",
+                  cursor: "pointer",
+                }}
+                onClick={() => setFiltros({ ...filtros, categoria: "", prioridad: "", persona: "" })}
+                title="Ver todas las actividades"
+              >
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-secondary small fw-bold">TOTAL</span>
+                  <span className="badge bg-primary-subtle text-primary">Actividades</span>
+                </div>
+                <strong className="fs-2 text-primary">{resumen.total}</strong>
+                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Registradas en el área</span>
+              </div>
+            </div>
+
+            <div className="col-6 col-md-2">
+              <div
+                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                style={{
+                  background: "linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)",
+                  borderLeft: "4px solid #f59e0b !important",
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-secondary small fw-bold">PENDIENTES</span>
+                  <span className="badge bg-warning-subtle text-warning">Espera/Inicio</span>
+                </div>
+                <strong className="fs-2 text-warning">{resumen.pendientes}</strong>
+                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Por iniciar o en espera</span>
+              </div>
+            </div>
+
+            <div className="col-6 col-md-2">
+              <div
+                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                style={{
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)",
+                  borderLeft: "4px solid #10b981 !important",
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-secondary small fw-bold">EN PROGRESO</span>
+                  <span className="badge bg-info-subtle text-info">En curso</span>
+                </div>
+                <strong className="fs-2 text-info">{resumen.progreso}</strong>
+                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Actualmente en ejecución</span>
+              </div>
+            </div>
+
+            <div className="col-6 col-md-2">
+              <div
+                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                style={{
+                  background: "linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)",
+                  borderLeft: "4px solid #059669 !important",
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-secondary small fw-bold">COMPLETADAS</span>
+                  <span className="badge bg-success-subtle text-success">Listas</span>
+                </div>
+                <strong className="fs-2 text-success">{resumen.cerradas}</strong>
+                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Actividades finalizadas</span>
+              </div>
+            </div>
+
+            <div className="col-6 col-md-2">
+              <div
+                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                style={{
+                  background: "linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)",
+                  borderLeft: "4px solid #8b5cf6 !important",
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-secondary small fw-bold">CUMPLIMIENTO</span>
+                  <span className="badge bg-purple-subtle text-dark" style={{ background: "#ede9fe" }}>Global</span>
+                </div>
+                <strong className="fs-2 text-dark">{resumen.cumplimiento}%</strong>
+                <div className="progress mt-1" style={{ height: 5 }}>
+                  <div className="progress-bar bg-success" style={{ width: `${resumen.cumplimiento}%` }}></div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="col-6 col-md-2">
+              <div
+                className="card card-body text-start border-0 shadow-sm h-100 p-3"
+                style={{
+                  background: "linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)",
+                  borderLeft: "4px solid #e11d48 !important",
+                }}
+              >
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="text-secondary small fw-bold">PRIORITARIAS</span>
+                  <span className="badge bg-danger-subtle text-danger">Alta</span>
+                </div>
+                <strong className="fs-2 text-danger">{resumen.prioritarias}</strong>
+                <span className="text-secondary" style={{ fontSize: "0.72rem" }}>Requieren atención</span>
+              </div>
+            </div>
           </div>
+
+          {/* Gráficos Interactivos de Distribución: Estados y Categorías */}
+          <div className="row g-3 mb-4">
+            {/* Gráfica Circular / Donut por Estado */}
+            <div className="col-lg-6">
+              <section className="card card-body border-0 shadow-sm h-100">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h2 className="h6 fw-bold mb-0">Distribución por Estado</h2>
+                  <span className="text-muted small">Avance del flujo</span>
+                </div>
+                <div className="row align-items-center">
+                  <div className="col-sm-5 text-center position-relative">
+                    <svg viewBox="0 0 36 36" style={{ width: "130px", height: "130px", transform: "rotate(-90deg)" }}>
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="3.5" />
+                      {(() => {
+                        let offset = 0;
+                        return resumen.porEstado.map((est) => {
+                          const strokeDasharray = `${est.porcentaje} ${100 - est.porcentaje}`;
+                          const currentOffset = offset;
+                          offset += est.porcentaje;
+                          return (
+                            <circle
+                              key={est.id}
+                              cx="18"
+                              cy="18"
+                              r="15.915"
+                              fill="none"
+                              stroke={est.color}
+                              strokeWidth="3.5"
+                              strokeDasharray={strokeDasharray}
+                              strokeDashoffset={-currentOffset}
+                              style={{ transition: "stroke-dashoffset 0.4s ease" }}
+                            />
+                          );
+                        });
+                      })()}
+                    </svg>
+                    <div
+                      className="position-absolute top-50 start-50 translate-middle text-center"
+                      style={{ pointerEvents: "none" }}
+                    >
+                      <span className="fs-5 fw-bold d-block text-dark">{resumen.total}</span>
+                      <span className="text-secondary" style={{ fontSize: "0.65rem" }}>Total</span>
+                    </div>
+                  </div>
+                  <div className="col-sm-7">
+                    <div className="d-flex flex-column gap-2">
+                      {resumen.porEstado.map((est) => (
+                        <div
+                          key={est.id}
+                          className="d-flex justify-content-between align-items-center p-2 rounded"
+                          style={{ background: "#f8fafc", cursor: "pointer" }}
+                          onClick={() => setVista("tablero")}
+                          title={`Ver columna ${est.nombre} en el tablero`}
+                        >
+                          <div className="d-flex align-items-center gap-2">
+                            <span style={{ width: 10, height: 10, borderRadius: "50%", background: est.color }}></span>
+                            <span className="small fw-semibold text-dark">{est.nombre}</span>
+                          </div>
+                          <span className="badge bg-white text-dark border">
+                            {est.cantidad} ({est.porcentaje}%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* Barras de Actividades por Categoría */}
+            <div className="col-lg-6">
+              <section className="card card-body border-0 shadow-sm h-100">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h2 className="h6 fw-bold mb-0">Actividades por Categoría</h2>
+                  <span className="text-muted small">Especialidad</span>
+                </div>
+                <div className="d-flex flex-column gap-2 justify-content-center h-100">
+                  {resumen.porCategoria.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className="p-1"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setFiltros({ ...filtros, categoria: String(cat.id) })}
+                      title={`Filtrar por ${cat.nombre}`}
+                    >
+                      <div className="d-flex justify-content-between small mb-1">
+                        <span className="fw-medium text-dark">{cat.nombre}</span>
+                        <span className="text-secondary">{cat.cantidad} act. ({cat.porcentaje}%)</span>
+                      </div>
+                      <div className="progress" style={{ height: 8, background: "#f1f5f9" }}>
+                        <div
+                          className="progress-bar"
+                          style={{
+                            width: `${cat.porcentaje}%`,
+                            background: cat.color,
+                            borderRadius: 4,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+
+          {/* Sección Inferior: Avance por Persona y Panel de Atención */}
           <div className="row g-3">
             <div className="col-lg-7">
               <section className="card card-body border-0 shadow-sm">
-                <h2 className="h5 fw-bold">Avance por persona</h2>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h2 className="h6 fw-bold mb-0">Avance Individual por Persona</h2>
+                  <span className="text-secondary small">Cumplimiento asignado</span>
+                </div>
                 {catalogo.usuarios.map((usuario) => {
                   const propias = visibles.filter((item) => item.asignado_a?.id === usuario.id);
                   const listas = propias.filter((item) => item.estado.es_cierre).length;
                   const porcentaje = propias.length ? Math.round((listas * 100) / propias.length) : 0;
                   return (
-                    <div key={usuario.id} className="mb-3">
+                    <div
+                      key={usuario.id}
+                      className="mb-3 p-2 rounded"
+                      style={{ background: "#f8fafc", cursor: "pointer" }}
+                      onClick={() => setFiltros({ ...filtros, persona: String(usuario.id) })}
+                      title={`Filtrar actividades de ${usuario.nombre}`}
+                    >
                       <div className="d-flex justify-content-between small mb-1">
-                        <span>{usuario.nombre} {usuario.es_admin ? "(Admin)" : ""}</span>
-                        <span className="text-secondary">{listas}/{propias.length} ({porcentaje}%)</span>
+                        <div>
+                          <span className="fw-bold text-dark">{usuario.nombre}</span>
+                          {usuario.es_admin && <span className="badge bg-danger-subtle text-danger ms-2" style={{ fontSize: "0.65rem" }}>Admin</span>}
+                        </div>
+                        <span className="text-secondary">
+                          <strong>{listas}</strong> de {propias.length} completadas ({porcentaje}%)
+                        </span>
                       </div>
-                      <div className="progress" style={{ height: 8 }}>
-                        <div className="progress-bar bg-primary" style={{ width: `${porcentaje}%` }}></div>
+                      <div className="progress" style={{ height: 8, background: "#e2e8f0" }}>
+                        <div
+                          className={`progress-bar ${porcentaje === 100 ? "bg-success" : porcentaje > 50 ? "bg-primary" : "bg-warning"}`}
+                          style={{ width: `${porcentaje}%`, borderRadius: 4 }}
+                        ></div>
                       </div>
                     </div>
                   );
                 })}
               </section>
             </div>
+
             <div className="col-lg-5">
               <section className="card card-body border-0 shadow-sm mb-3">
-                <h2 className="h5 fw-bold">Para revisar</h2>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h2 className="h6 fw-bold mb-0">Para Revisar / Atención Inmediata</h2>
+                  <span className="badge bg-warning-subtle text-dark">
+                    {visibles.filter((item) => vencida(item) || item.estado.columna === "en_espera").length}
+                  </span>
+                </div>
                 {visibles.filter((item) => vencida(item) || item.estado.columna === "en_espera").length === 0 && (
-                  <p className="text-secondary mb-0 small">No hay actividades vencidas ni en espera.</p>
+                  <p className="text-secondary mb-0 small py-2">No hay actividades vencidas ni en espera en este momento.</p>
                 )}
                 {visibles
                   .filter((item) => vencida(item) || item.estado.columna === "en_espera")
                   .map((item) => (
-                    <button key={item.id} type="button" className="btn btn-link text-start px-0 d-block text-decoration-none" onClick={() => abrir(item)}>
-                      <span className="fw-semibold text-dark">{item.clave}</span> · {item.titulo}
-                      <span className={`badge ms-2 ${vencida(item) ? "text-bg-danger" : "text-bg-warning"}`}>
-                        {vencida(item) ? "Vencida" : item.estado.nombre}
-                      </span>
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="btn btn-link text-start px-0 py-1 d-block text-decoration-none border-bottom"
+                      onClick={() => abrir(item)}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="fw-semibold text-dark small text-truncate" style={{ maxWidth: "70%" }}>
+                          {item.clave} · {item.titulo}
+                        </span>
+                        <span className={`badge ${vencida(item) ? "text-bg-danger" : "text-bg-warning"}`}>
+                          {vencida(item) ? "Vencida" : item.estado.nombre}
+                        </span>
+                      </div>
                     </button>
                   ))}
               </section>
+
               <section className="card card-body border-0 shadow-sm">
-                <h2 className="h5 fw-bold">Movimientos recientes</h2>
+                <h2 className="h6 fw-bold mb-2">Movimientos y Auditoría Reciente</h2>
                 {historial.length === 0 && <p className="text-secondary mb-0 small">Todavía no hay cambios registrados.</p>}
-                {historial.map((fila) => (
+                {historial.slice(0, 6).map((fila) => (
                   <p key={fila.id} className="small mb-2 pb-1 border-bottom">
                     <strong>{fila.clave}</strong> {fila.campo}: {fila.valor_anterior ? `${fila.valor_anterior} → ` : ""}<span className="text-primary">{fila.valor_nuevo}</span>
-                    <span className="text-secondary d-block" style={{ fontSize: "0.75rem" }}>Por {fila.autor || "Sistema"}</span>
+                    <span className="text-secondary d-block" style={{ fontSize: "0.72rem" }}>Por {fila.autor || "Sistema"} · {fila.creado_en}</span>
                   </p>
                 ))}
               </section>
