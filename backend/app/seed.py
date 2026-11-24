@@ -53,11 +53,11 @@ def cargar_demo(db: Session) -> None:
     db.flush()
 
     personas = [
-        ("Mariana López", "mariana"),
-        ("Andrés Palma", "andres"),
-        ("Lucía Herrera", "lucia"),
-        ("Camilo Ruiz", "camilo"),
-        ("Sofía Delgado", "sofia"),
+        ("Usuario 1", "usuario1"),
+        ("Usuario 2", "usuario2"),
+        ("Usuario 3", "usuario3"),
+        ("Usuario 4", "usuario4"),
+        ("Usuario 5", "usuario5"),
     ]
     usuarios = {}
     for nombre, acceso in personas:
@@ -95,53 +95,53 @@ def cargar_demo(db: Session) -> None:
     respaldos = nueva(
         "Revisar los respaldos de la semana",
         "Comprobar que las copias de bases y archivos del departamento quedaron completas.",
-        "Infraestructura", "Alta", "en_progreso", hoy, (8, 0), (9, 30), "mariana", "andres",
+        "Infraestructura", "Alta", "en_progreso", hoy, (8, 0), (9, 30), "usuario1", "usuario2",
     )
     nueva(
         "Documentar los cambios de la red local",
         "Dejar por escrito los ajustes hechos en el segmento del área.",
-        "Redes", "Media", "por_hacer", hoy, (10, 0), (12, 0), "mariana", "lucia",
+        "Redes", "Media", "por_hacer", hoy, (10, 0), (12, 0), "usuario1", "usuario3",
     )
     portal = nueva(
         "Avanzar el portal interno",
         "Continuar las pantallas acordadas para consulta del equipo.",
-        "Desarrollo", "Alta", "en_progreso", hoy, (14, 0), (16, 30), "mariana", "camilo",
+        "Desarrollo", "Alta", "en_progreso", hoy, (14, 0), (16, 30), "usuario1", "usuario4",
     )
     nueva(
         "Coordinar la ventana con el proveedor de enlaces",
         "Confirmar el horario en que el proveedor puede intervenir el enlace.",
-        "Redes", "Baja", "en_espera", hoy, (16, 30), (17, 0), "lucia", "lucia",
+        "Redes", "Baja", "en_espera", hoy, (16, 30), (17, 0), "usuario3", "usuario3",
         "Se espera la confirmación del horario.",
     )
     nueva(
         "Cerrar el inventario de equipos",
         "Conciliar el listado de equipos asignados al departamento.",
-        "Datos", "Media", "completado", hoy, (9, 0), (10, 0), "mariana", "sofia",
+        "Datos", "Media", "completado", hoy, (9, 0), (10, 0), "usuario1", "usuario5",
     )
     nueva(
         "Preparar la capacitación interna",
         "Ordenar los temas de la sesión con el equipo.",
-        "Proyectos", "Media", "por_hacer", manana, (9, 0), (11, 0), "mariana", "mariana",
+        "Proyectos", "Media", "por_hacer", manana, (9, 0), (11, 0), "usuario1", "usuario1",
     )
     nueva(
         "Revisar los accesos del trimestre",
         "Verificar altas y bajas de acceso a los sistemas del área.",
-        "Seguridad", "Alta", "por_hacer", manana, (11, 0), (13, 0), "mariana", "andres",
+        "Seguridad", "Alta", "por_hacer", manana, (11, 0), (13, 0), "usuario1", "usuario2",
     )
     nueva(
         "Mantener los servidores de prueba",
         "Aplicar el mantenimiento programado del ambiente de pruebas.",
-        "Mantenimiento", "Media", "por_hacer", jueves, (8, 0), (10, 0), "camilo", "camilo",
+        "Mantenimiento", "Media", "por_hacer", jueves, (8, 0), (10, 0), "usuario4", "usuario4",
     )
     informe = nueva(
         "Armar el informe de avance del área",
         "Resumir las actividades de la semana para la revisión del jefe.",
-        "Proyectos", "Alta", "en_progreso", hoy, (11, 0), (12, 0), "mariana", "mariana",
+        "Proyectos", "Alta", "en_progreso", hoy, (11, 0), (12, 0), "usuario1", "usuario1",
     )
     nueva(
         "Ordenar los scripts del departamento",
         "Agrupar los scripts que el equipo usa en la operación diaria.",
-        "Desarrollo", "Baja", "completado", ayer, (15, 0), (16, 30), "sofia", "sofia",
+        "Desarrollo", "Baja", "completado", ayer, (15, 0), (16, 30), "usuario5", "usuario5",
     )
     db.flush()
 
@@ -153,20 +153,20 @@ def cargar_demo(db: Session) -> None:
         Checklist(actividad_id=respaldos.id, texto="Copia de archivos", hecho=False, orden=2),
         Comentario(
             actividad_id=informe.id,
-            autor_id=usuarios["camilo"].id,
+            autor_id=usuarios["usuario4"].id,
             cuerpo="Falta el apartado de proyectos en curso.",
             creado_en=datetime.combine(hoy, time(11, 20)),
         ),
         Historial(
             actividad_id=informe.id,
-            autor_id=usuarios["mariana"].id,
+            autor_id=usuarios["usuario1"].id,
             campo="alta",
             valor_nuevo="Armar el informe de avance del área",
             creado_en=datetime.combine(hoy, time(8, 10)),
         ),
         Historial(
             actividad_id=respaldos.id,
-            autor_id=usuarios["andres"].id,
+            autor_id=usuarios["usuario2"].id,
             campo="estado",
             valor_anterior="Por hacer",
             valor_nuevo="En progreso",
