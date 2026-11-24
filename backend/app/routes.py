@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from .auth_utils import hashear_clave, verificar_clave
 from .database import get_db
 from .models import Actividad, Area, Categoria, Checklist, Comentario, Estado, Historial, Prioridad, Puesto, Usuario
-from .schemas import ActividadIn, ComentarioIn, EstadoIn
+from .schemas import ActividadIn, ComentarioIn, EstadoIn, LoginIn, RecuperarClaveIn, UsuarioCrearIn
 
 router = APIRouter(prefix="/api")
 
@@ -26,6 +27,8 @@ def usuario_json(usuario: Usuario) -> dict:
         "id": usuario.id,
         "nombre": usuario.nombre,
         "usuario_acceso": usuario.usuario_acceso,
+        "email": usuario.email,
+        "es_admin": bool(usuario.es_admin),
         "puesto_id": usuario.puesto_id,
         "etiqueta_rol": etiqueta_rol(usuario),
     }
@@ -138,6 +141,72 @@ def listar_usuarios(db: Session = Depends(get_db)):
         .order_by(Usuario.nombre)
     ).all()
     return [usuario_json(usuario) for usuario in usuarios]
+
+
+@router.post("/login")
+def login(datos: LoginIn, db: Session = Depends(get_db)):
+    ident = datos.identificador.strip().lower()
+    usuario = db.scalar(
+        select(Usuario)
+        .where((Usuario.usuario_acceso == ident) | (Usuario.email == ident))
+        .options(selectinload(Usuario.puesto), selectinload(Usuario.area))
+    )
+    if usuario is None or not usuario.activo:
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+
+    if not verificar_clave(datos.clave, usuario.hash_clave):
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+
+    return {
+        "ok": True,
+        "usuario": usuario_json(usuario),
+    }
+
+
+@router.post("/usuarios", status_code=201)
+def crear_usuario(datos: UsuarioCrearIn, db: Session = Depends(get_db)):
+    area = area_activa(db)
+    user_acc = datos.usuario_acceso.strip().lower()
+    user_email = datos.email.strip().lower()
+
+    if db.scalar(select(Usuario.id).where(Usuario.usuario_acceso == user_acc)):
+        raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
+    if db.scalar(select(Usuario.id).where(Usuario.email == user_email)):
+        raise HTTPException(status_code=400, detail="El correo corporativo ya está registrado")
+
+    if datos.puesto_id is not None and db.get(Puesto, datos.puesto_id) is None:
+        raise HTTPException(status_code=400, detail="Puesto seleccionado no existe")
+
+    nuevo = Usuario(
+        area_id=area.id,
+        nombre=datos.nombre.strip(),
+        usuario_acceso=user_acc,
+        email=user_email,
+        hash_clave=hashear_clave(datos.clave),
+        puesto_id=datos.puesto_id,
+        es_admin=datos.es_admin,
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+
+    creado = db.scalar(
+        select(Usuario)
+        .where(Usuario.id == nuevo.id)
+        .options(selectinload(Usuario.puesto), selectinload(Usuario.area))
+    )
+    return usuario_json(creado)
+
+
+@router.post("/usuarios/recuperar-clave")
+def recuperar_clave(datos: RecuperarClaveIn, db: Session = Depends(get_db)):
+    usuario = db.get(Usuario, datos.usuario_id)
+    if usuario is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    usuario.hash_clave = hashear_clave(datos.nueva_clave)
+    db.commit()
+    return {"ok": True, "mensaje": f"Contraseña actualizada para {usuario.nombre}"}
 
 
 @router.get("/categorias")

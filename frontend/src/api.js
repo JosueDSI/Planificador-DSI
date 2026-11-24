@@ -64,4 +64,11 @@ export const api = {
     }),
   eliminar: (id) => pedir(`/api/actividades/${id}`, { method: "DELETE" }),
   historial: () => pedir("/api/historial"),
+  login: (identificador, clave) => pedir("/api/login", { method: "POST", body: JSON.stringify({ identificador, clave }) }),
+  crearUsuario: (datos) => pedir("/api/usuarios", { method: "POST", body: JSON.stringify(datos) }),
+  recuperarClave: (usuarioId, nuevaClave) =>
+    pedir("/api/usuarios/recuperar-clave", {
+      method: "POST",
+      body: JSON.stringify({ usuario_id: usuarioId, nueva_clave: nuevaClave }),
+    }),
 };

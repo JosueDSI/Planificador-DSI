@@ -47,7 +47,7 @@ function aFormulario(actividad, catalogo) {
       categoria_id: catalogo.categorias[0]?.id ?? "",
       prioridad_id: catalogo.prioridades.find((item) => item.nombre === "Media")?.id ?? catalogo.prioridades[0]?.id ?? "",
       estado_id: catalogo.estados[0]?.id ?? "",
-      reportado_por: catalogo.quienId || catalogo.usuarios[0]?.id || "",
+      reportado_por: catalogo.usuarioActual?.id || catalogo.usuarios[0]?.id || "",
     };
   }
   return {
@@ -118,7 +118,30 @@ export default function App() {
   const [vista, setVista] = useState("resumen");
   const [filtros, setFiltros] = useState({ q: "", categoria: "", prioridad: "", persona: "" });
   const [dia, setDia] = useState(hoyIso);
-  const [quienId, setQuienId] = useState("");
+
+  // Sesión y Auth
+  const [usuarioActual, setUsuarioActual] = useState(() => {
+    try {
+      const u = localStorage.getItem("planificador_user_session");
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [formLogin, setFormLogin] = useState({ identificador: "", clave: "" });
+  const [errorLogin, setErrorLogin] = useState("");
+  const [cargandoLogin, setCargandoLogin] = useState(false);
+
+  // Modal Crear Usuario (Admin)
+  const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
+  const [nuevoUser, setNuevoUser] = useState({ nombre: "", usuario_acceso: "", email: "", clave: "", es_admin: false });
+  const [avisoAdmin, setAvisoAdmin] = useState("");
+  const [exitoAdmin, setExitoAdmin] = useState("");
+
+  // Modal Recuperar Clave (Admin)
+  const [mostrarRecuperarClave, setMostrarRecuperarClave] = useState(false);
+  const [recuperarUser, setRecuperarUser] = useState({ usuario_id: "", nueva_clave: "" });
+
   const [form, setForm] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
   const [nota, setNota] = useState("");
@@ -130,13 +153,67 @@ export default function App() {
     setCatalogo(datos);
     setActividades(datos.actividades);
     setHistorial(datos.historial);
-    setQuienId((actual) => actual || String(datos.usuarios[0]?.id || ""));
     setError("");
+
+    // Si no hay usuario en sesión, sugerir admin o el primer usuario
+    if (!usuarioActual && datos.usuarios.length) {
+      const admin = datos.usuarios.find((u) => u.es_admin) || datos.usuarios[0];
+      setUsuarioActual(admin);
+      localStorage.setItem("planificador_user_session", JSON.stringify(admin));
+    }
   }
 
   useEffect(() => {
     cargar().catch(() => setError("No se pudo conectar con la API. Verifica que el backend esté activo."));
   }, []);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setErrorLogin("");
+    setCargandoLogin(true);
+    try {
+      const res = await api.login(formLogin.identificador, formLogin.clave);
+      setUsuarioActual(res.usuario);
+      localStorage.setItem("planificador_user_session", JSON.stringify(res.usuario));
+      setFormLogin({ identificador: "", clave: "" });
+    } catch (err) {
+      setErrorLogin(err.message);
+    } finally {
+      setCargandoLogin(false);
+    }
+  }
+
+  function handleLogout() {
+    setUsuarioActual(null);
+    localStorage.removeItem("planificador_user_session");
+  }
+
+  async function handleCrearUsuario(e) {
+    e.preventDefault();
+    setAvisoAdmin("");
+    setExitoAdmin("");
+    try {
+      await api.crearUsuario(nuevoUser);
+      setExitoAdmin("Usuario corporativo creado exitosamente");
+      setNuevoUser({ nombre: "", usuario_acceso: "", email: "", clave: "", es_admin: false });
+      await cargar();
+    } catch (err) {
+      setAvisoAdmin(err.message);
+    }
+  }
+
+  async function handleRecuperarClave(e) {
+    e.preventDefault();
+    setAvisoAdmin("");
+    setExitoAdmin("");
+    try {
+      const res = await api.recuperarClave(Number(recuperarUser.usuario_id), recuperarUser.nueva_clave);
+      setExitoAdmin(res.mensaje || "Contraseña restablecida con éxito");
+      setRecuperarUser({ usuario_id: "", nueva_clave: "" });
+    } catch (err) {
+      setAvisoAdmin(err.message);
+    }
+  }
 
   const visibles = useMemo(() => {
     const q = filtros.q.trim().toLowerCase();
@@ -165,7 +242,7 @@ export default function App() {
     setEditandoId(null);
     setNota("");
     setAviso("");
-    setForm(aFormulario(null, { ...catalogo, quienId }));
+    setForm(aFormulario(null, { ...catalogo, usuarioActual }));
   }
 
   function abrir(actividad) {
@@ -202,10 +279,10 @@ export default function App() {
   }
 
   async function comentar() {
-    if (!nota.trim() || !quienId) return;
+    if (!nota.trim() || !usuarioActual) return;
     setAviso("");
     try {
-      const actualizada = await api.comentar(editandoId, Number(quienId), nota.trim());
+      const actualizada = await api.comentar(editandoId, usuarioActual.id, nota.trim());
       setActividades((lista) => lista.map((item) => (item.id === actualizada.id ? actualizada : item)));
       setNota("");
     } catch (err) {
@@ -218,7 +295,7 @@ export default function App() {
     const id = Number(evento.dataTransfer.getData("text/plain"));
     if (!id) return;
     try {
-      const actualizada = await api.mover(id, estadoId, quienId ? Number(quienId) : null);
+      const actualizada = await api.mover(id, estadoId, usuarioActual ? usuarioActual.id : null);
       setActividades((lista) => lista.map((item) => (item.id === actualizada.id ? actualizada : item)));
       setHistorial(await api.historial());
       setError("");
@@ -229,9 +306,53 @@ export default function App() {
 
   if (!catalogo) {
     return (
-      <main className="container py-5">
-        <h1 className="h3">Planificador DSI</h1>
-        <p className="text-secondary">{error || "Cargando las actividades del área…"}</p>
+      <main className="container py-5 text-center" style={{ maxWidth: 480 }}>
+        <h1 className="h3 fw-bold mb-2">Planificador DSI</h1>
+        <p className="text-secondary">{error || "Cargando actividades..."}</p>
+      </main>
+    );
+  }
+
+  // Pantalla de Login minimalista si no hay sesión
+  if (!usuarioActual) {
+    return (
+      <main className="container d-flex align-items-center justify-content-center" style={{ minHeight: "85vh" }}>
+        <div className="card card-body shadow-sm border-0 p-4" style={{ maxWidth: 400, width: "100%", borderRadius: 16 }}>
+          <div className="text-center mb-4">
+            <h1 className="h4 fw-bold mb-1">Planificador DSI</h1>
+            <p className="text-secondary small mb-0">Acceso corporativo del departamento</p>
+          </div>
+          {errorLogin && <div className="alert alert-danger py-2 small">{errorLogin}</div>}
+          <form onSubmit={handleLogin}>
+            <div className="mb-3">
+              <label className="form-label small fw-semibold text-secondary">Usuario o correo corporativo</label>
+              <input
+                className="form-control"
+                required
+                placeholder="admin o usuario@dsi.corp"
+                value={formLogin.identificador}
+                onChange={(e) => setFormLogin({ ...formLogin, identificador: e.target.value })}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="form-label small fw-semibold text-secondary">Contraseña</label>
+              <input
+                type="password"
+                className="form-control"
+                required
+                placeholder="••••••••"
+                value={formLogin.clave}
+                onChange={(e) => setFormLogin({ ...formLogin, clave: e.target.value })}
+              />
+              <div className="text-muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>
+                Demo: <code>admin</code> / <code>DsiPass@2026</code>
+              </div>
+            </div>
+            <button className="btn btn-primary w-100 py-2" type="submit" disabled={cargandoLogin}>
+              {cargandoLogin ? "Verificando..." : "Iniciar sesión"}
+            </button>
+          </form>
+        </div>
       </main>
     );
   }
@@ -246,30 +367,64 @@ export default function App() {
 
   return (
     <main className="container-fluid py-4" style={{ maxWidth: 1180 }}>
-      <header className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+      {/* Barra superior Minimalista con Auth */}
+      <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-2 border-bottom">
         <div>
-          <h1 className="h3 mb-1">Planificador DSI</h1>
-          <p className="mb-0 text-secondary">Revisión de actividades del {catalogo.area.nombre}</p>
+          <div className="d-flex align-items-center gap-2">
+            <h1 className="h4 mb-0 fw-bold">Planificador DSI</h1>
+            {usuarioActual.es_admin && <span className="badge bg-danger-subtle text-danger border border-danger-subtle">Admin</span>}
+          </div>
+          <p className="mb-0 text-secondary small">{catalogo.area.nombre}</p>
         </div>
-        <label className="small text-secondary">
-          Registrando como
-          <select className="form-select form-select-sm mt-1" value={quienId} onChange={(evento) => setQuienId(evento.target.value)}>
-            {catalogo.usuarios.map((usuario) => (
-              <option key={usuario.id} value={usuario.id}>
-                {usuario.nombre}
-                {usuario.etiqueta_rol ? ` · ${usuario.etiqueta_rol}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+
+        <div className="d-flex align-items-center gap-2">
+          {usuarioActual.es_admin && (
+            <div className="btn-group btn-group-sm">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => {
+                  setAvisoAdmin("");
+                  setExitoAdmin("");
+                  setMostrarCrearUsuario(true);
+                }}
+              >
+                + Nuevo usuario
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => {
+                  setAvisoAdmin("");
+                  setExitoAdmin("");
+                  setMostrarRecuperarClave(true);
+                }}
+              >
+                Recuperar clave
+              </button>
+            </div>
+          )}
+
+          <div className="dropdown">
+            <div className="d-flex align-items-center gap-2 ps-2 border-start">
+              <div className="text-end">
+                <div className="small fw-semibold">{usuarioActual.nombre}</div>
+                <div className="text-secondary" style={{ fontSize: "0.72rem" }}>{usuarioActual.email || usuarioActual.usuario_acceso}</div>
+              </div>
+              <button type="button" className="btn btn-outline-danger btn-sm" onClick={handleLogout} title="Cerrar sesión">
+                Salir
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
 
-      {error && <div className="alert alert-warning">{error}</div>}
+      {error && <div className="alert alert-warning py-2 small">{error}</div>}
 
-      <div className="card card-body mb-3">
+      <div className="card card-body mb-3 border-0 shadow-sm" style={{ background: "#ffffff" }}>
         <div className="row g-2 align-items-center">
           <div className="col-md">
-            <input className="form-control" placeholder="Buscar actividad" value={filtros.q} onChange={(evento) => setFiltros({ ...filtros, q: evento.target.value })} />
+            <input className="form-control" placeholder="Buscar actividad..." value={filtros.q} onChange={(evento) => setFiltros({ ...filtros, q: evento.target.value })} />
           </div>
           <div className="col-md-2">
             <select className="form-select" value={filtros.categoria} onChange={(evento) => setFiltros({ ...filtros, categoria: evento.target.value })}>
@@ -285,12 +440,14 @@ export default function App() {
           </div>
           <div className="col-md-3">
             <select className="form-select" value={filtros.persona} onChange={(evento) => setFiltros({ ...filtros, persona: evento.target.value })}>
-              <option value="">Persona</option>
+              <option value="">Responsable</option>
               {catalogo.usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>)}
             </select>
           </div>
           <div className="col-md-auto">
-            <button className="btn btn-primary" type="button" onClick={abrirNueva}>Nueva actividad</button>
+            <button className="btn btn-primary" type="button" onClick={abrirNueva}>
+              + Nueva actividad
+            </button>
           </div>
         </div>
       </div>
@@ -315,7 +472,7 @@ export default function App() {
               [resumen.prioritarias, "Prioritarias"],
             ].map(([valor, etiqueta]) => (
               <div className="col-6 col-md-2" key={etiqueta}>
-                <div className="card card-body">
+                <div className="card card-body text-center border-0 shadow-sm">
                   <strong className="fs-3">{valor}</strong>
                   <span className="text-secondary small">{etiqueta}</span>
                 </div>
@@ -324,20 +481,20 @@ export default function App() {
           </div>
           <div className="row g-3">
             <div className="col-lg-7">
-              <section className="card card-body">
-                <h2 className="h5">Avance por persona</h2>
+              <section className="card card-body border-0 shadow-sm">
+                <h2 className="h5 fw-bold">Avance por persona</h2>
                 {catalogo.usuarios.map((usuario) => {
                   const propias = visibles.filter((item) => item.asignado_a?.id === usuario.id);
                   const listas = propias.filter((item) => item.estado.es_cierre).length;
                   const porcentaje = propias.length ? Math.round((listas * 100) / propias.length) : 0;
                   return (
                     <div key={usuario.id} className="mb-3">
-                      <div className="d-flex justify-content-between small">
-                        <span>{usuario.nombre}</span>
-                        <span>{listas}/{propias.length}</span>
+                      <div className="d-flex justify-content-between small mb-1">
+                        <span>{usuario.nombre} {usuario.es_admin ? "(Admin)" : ""}</span>
+                        <span className="text-secondary">{listas}/{propias.length} ({porcentaje}%)</span>
                       </div>
-                      <div className="progress" role="progressbar" aria-label={`Avance de ${usuario.nombre}`} aria-valuenow={porcentaje} aria-valuemin="0" aria-valuemax="100">
-                        <div className="progress-bar" style={{ width: `${porcentaje}%` }}>{porcentaje}%</div>
+                      <div className="progress" style={{ height: 8 }}>
+                        <div className="progress-bar bg-primary" style={{ width: `${porcentaje}%` }}></div>
                       </div>
                     </div>
                   );
@@ -345,27 +502,29 @@ export default function App() {
               </section>
             </div>
             <div className="col-lg-5">
-              <section className="card card-body mb-3">
-                <h2 className="h5">Para revisar</h2>
+              <section className="card card-body border-0 shadow-sm mb-3">
+                <h2 className="h5 fw-bold">Para revisar</h2>
                 {visibles.filter((item) => vencida(item) || item.estado.columna === "en_espera").length === 0 && (
-                  <p className="text-secondary mb-0">No hay actividades vencidas ni en espera.</p>
+                  <p className="text-secondary mb-0 small">No hay actividades vencidas ni en espera.</p>
                 )}
                 {visibles
                   .filter((item) => vencida(item) || item.estado.columna === "en_espera")
                   .map((item) => (
-                    <button key={item.id} type="button" className="btn btn-link text-start px-0 d-block" onClick={() => abrir(item)}>
-                      {item.clave} · {item.titulo}
-                      <span className="text-secondary"> · {vencida(item) ? "Vencida" : item.estado.nombre}</span>
+                    <button key={item.id} type="button" className="btn btn-link text-start px-0 d-block text-decoration-none" onClick={() => abrir(item)}>
+                      <span className="fw-semibold text-dark">{item.clave}</span> · {item.titulo}
+                      <span className={`badge ms-2 ${vencida(item) ? "text-bg-danger" : "text-bg-warning"}`}>
+                        {vencida(item) ? "Vencida" : item.estado.nombre}
+                      </span>
                     </button>
                   ))}
               </section>
-              <section className="card card-body">
-                <h2 className="h5">Movimientos recientes</h2>
-                {historial.length === 0 && <p className="text-secondary mb-0">Todavía no hay cambios registrados.</p>}
+              <section className="card card-body border-0 shadow-sm">
+                <h2 className="h5 fw-bold">Movimientos recientes</h2>
+                {historial.length === 0 && <p className="text-secondary mb-0 small">Todavía no hay cambios registrados.</p>}
                 {historial.map((fila) => (
-                  <p key={fila.id} className="small mb-2">
-                    <strong>{fila.clave}</strong> {fila.campo}: {fila.valor_anterior ? `${fila.valor_anterior} → ` : ""}{fila.valor_nuevo}
-                    <span className="text-secondary"> · {fila.autor || "Sistema"}</span>
+                  <p key={fila.id} className="small mb-2 pb-1 border-bottom">
+                    <strong>{fila.clave}</strong> {fila.campo}: {fila.valor_anterior ? `${fila.valor_anterior} → ` : ""}<span className="text-primary">{fila.valor_nuevo}</span>
+                    <span className="text-secondary d-block" style={{ fontSize: "0.75rem" }}>Por {fila.autor || "Sistema"}</span>
                   </p>
                 ))}
               </section>
@@ -379,13 +538,13 @@ export default function App() {
           {catalogo.estados.map((estado) => {
             const columna = visibles.filter((item) => item.estado.id === estado.id);
             return (
-              <div className="col-10 col-md-3" key={estado.id}>
+              <div className="col-10 col-md-3" key={estado.id} style={{ minWidth: 280 }}>
                 <section
                   className="columna"
                   onDragOver={(evento) => evento.preventDefault()}
                   onDrop={(evento) => soltar(evento, estado.id)}
                 >
-                  <h2 className="h6">{estado.nombre} · {columna.length}</h2>
+                  <h2 className="h6 fw-bold mb-3">{estado.nombre} · {columna.length}</h2>
                   {columna.map((item) => <Tarjeta key={item.id} actividad={item} onAbrir={() => abrir(item)} />)}
                 </section>
               </div>
@@ -395,20 +554,20 @@ export default function App() {
       )}
 
       {vista === "agenda" && (
-        <section className="card card-body">
-          <div className="d-flex flex-wrap justify-content-between gap-2 mb-3">
-            <label className="small text-secondary">
-              Día
-              <input className="form-control" type="date" value={dia} onChange={(evento) => setDia(evento.target.value)} />
+        <section className="card card-body border-0 shadow-sm">
+          <div className="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3 pb-2 border-bottom">
+            <label className="small text-secondary mb-0">
+              <span className="d-block mb-1 fw-bold text-dark">Día:</span>
+              <input className="form-control form-control-sm" type="date" value={dia} onChange={(evento) => setDia(evento.target.value)} />
             </label>
-            <div className="text-secondary small align-self-end">
+            <div className="text-secondary small">
               Jornada {catalogo.area.jornada_inicio}–{catalogo.area.jornada_fin} · Agendado {Math.floor(ocupado / 60)}h {ocupado % 60}m · Disponible {Math.floor(libre / 60)}h {libre % 60}m
             </div>
           </div>
-          {delDia.length === 0 && <p className="text-secondary mb-0">Este día no tiene actividades.</p>}
+          {delDia.length === 0 && <p className="text-secondary mb-0 py-3 text-center">Este día no tiene actividades.</p>}
           {delDia.map((item) => (
-            <div key={item.id} className="d-flex gap-3 border-bottom py-2">
-              <div className="hora text-secondary" style={{ width: 110 }}>{item.hora_inicio}–{item.hora_fin}</div>
+            <div key={item.id} className="d-flex gap-3 border-bottom py-2 align-items-center">
+              <div className="hora text-secondary small fw-bold" style={{ width: 110 }}>{item.hora_inicio}–{item.hora_fin}</div>
               <div className="flex-grow-1">
                 <Tarjeta actividad={item} onAbrir={() => abrir(item)} />
               </div>
@@ -417,68 +576,69 @@ export default function App() {
         </section>
       )}
 
+      {/* Modal Crear / Editar Actividad */}
       {form && (
-        <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="titulo-actividad" style={{ background: "rgba(15,23,42,.45)" }}>
+        <div className="modal d-block" role="dialog" aria-modal="true" style={{ background: "rgba(15,23,42,.45)" }}>
           <div className="modal-dialog modal-lg modal-dialog-scrollable">
-            <form className="modal-content" onSubmit={guardar}>
+            <form className="modal-content border-0 shadow-lg" onSubmit={guardar}>
               <div className="modal-header">
-                <h2 className="modal-title h5" id="titulo-actividad">{editandoId ? "Editar actividad" : "Nueva actividad"}</h2>
+                <h2 className="modal-title h5 fw-bold">{editandoId ? "Editar actividad" : "Nueva actividad"}</h2>
                 <button type="button" className="btn-close" aria-label="Cerrar" onClick={() => setForm(null)} />
               </div>
               <div className="modal-body">
-                {aviso && <div className="alert alert-danger">{aviso}</div>}
-                <label className="form-label">Nombre</label>
+                {aviso && <div className="alert alert-danger py-2 small">{aviso}</div>}
+                <label className="form-label small fw-bold">Título *</label>
                 <input className="form-control mb-2" required value={form.titulo} onChange={(evento) => setForm({ ...form, titulo: evento.target.value })} />
-                <label className="form-label">Descripción</label>
+                <label className="form-label small fw-bold">Descripción</label>
                 <textarea className="form-control mb-2" rows="2" value={form.descripcion} onChange={(evento) => setForm({ ...form, descripcion: evento.target.value })} />
                 <div className="row g-2">
                   <div className="col-md-4">
-                    <label className="form-label">Fecha</label>
+                    <label className="form-label small fw-bold">Fecha</label>
                     <input className="form-control" type="date" required value={form.fecha} onChange={(evento) => setForm({ ...form, fecha: evento.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Inicio</label>
+                    <label className="form-label small fw-bold">Inicio</label>
                     <input className="form-control" type="time" required value={form.hora_inicio} onChange={(evento) => setForm({ ...form, hora_inicio: evento.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Fin</label>
+                    <label className="form-label small fw-bold">Fin</label>
                     <input className="form-control" type="time" required value={form.hora_fin} onChange={(evento) => setForm({ ...form, hora_fin: evento.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Categoría</label>
+                    <label className="form-label small fw-bold">Categoría</label>
                     <select className="form-select" value={form.categoria_id} onChange={(evento) => setForm({ ...form, categoria_id: evento.target.value })}>
                       {catalogo.categorias.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
                     </select>
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Prioridad</label>
+                    <label className="form-label small fw-bold">Prioridad</label>
                     <select className="form-select" value={form.prioridad_id} onChange={(evento) => setForm({ ...form, prioridad_id: evento.target.value })}>
                       {catalogo.prioridades.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
                     </select>
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Estado</label>
+                    <label className="form-label small fw-bold">Estado</label>
                     <select className="form-select" value={form.estado_id} onChange={(evento) => setForm({ ...form, estado_id: evento.target.value })}>
                       {catalogo.estados.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
                     </select>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label">Solicitada por</label>
+                    <label className="form-label small fw-bold">Solicitada por</label>
                     <select className="form-select" value={form.reportado_por} onChange={(evento) => setForm({ ...form, reportado_por: evento.target.value })}>
                       {catalogo.usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>)}
                     </select>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label">Responsable</label>
+                    <label className="form-label small fw-bold">Responsable asignado (Admin / Gestor)</label>
                     <select className="form-select" value={form.asignado_a} onChange={(evento) => setForm({ ...form, asignado_a: evento.target.value })}>
                       <option value="">Sin asignar</option>
                       {catalogo.usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>)}
                     </select>
                   </div>
                 </div>
-                <label className="form-label mt-2">Observaciones</label>
+                <label className="form-label small fw-bold mt-2">Observaciones</label>
                 <textarea className="form-control mb-2" rows="2" value={form.observaciones} onChange={(evento) => setForm({ ...form, observaciones: evento.target.value })} />
-                <label className="form-label">Subtareas</label>
+                <label className="form-label small fw-bold">Subtareas</label>
                 {form.checklist.map((item, indice) => (
                   <div className="input-group mb-2" key={item.id ?? `nueva-${indice}`}>
                     <div className="input-group-text">
@@ -504,11 +664,11 @@ export default function App() {
                   </div>
                 ))}
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setForm({ ...form, checklist: [...form.checklist, { texto: "", hecho: false }] })}>
-                  Agregar subtarea
+                  + Agregar subtarea
                 </button>
                 {editando && (
-                  <div className="mt-3">
-                    <h3 className="h6">Comentarios</h3>
+                  <div className="mt-3 pt-2 border-top">
+                    <h3 className="h6 fw-bold">Comentarios</h3>
                     {editando.comentarios.length === 0 && <p className="text-secondary small">Sin comentarios.</p>}
                     {editando.comentarios.map((item) => (
                       <p key={item.id} className="small mb-1"><strong>{item.autor.nombre}:</strong> {item.cuerpo}</p>
@@ -521,11 +681,142 @@ export default function App() {
                 )}
               </div>
               <div className="modal-footer justify-content-between">
-                {editandoId ? <button type="button" className="btn btn-outline-danger" onClick={eliminar}>Eliminar</button> : <span />}
+                {editandoId ? <button type="button" className="btn btn-outline-danger btn-sm" onClick={eliminar}>Eliminar</button> : <span />}
                 <div className="d-flex gap-2">
-                  <button type="button" className="btn btn-light" onClick={() => setForm(null)}>Cancelar</button>
-                  <button className="btn btn-primary" type="submit">Guardar</button>
+                  <button type="button" className="btn btn-light btn-sm" onClick={() => setForm(null)}>Cancelar</button>
+                  <button className="btn btn-primary btn-sm" type="submit">Guardar</button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Admin: Crear Usuario Corporativo */}
+      {mostrarCrearUsuario && (
+        <div className="modal d-block" role="dialog" aria-modal="true" style={{ background: "rgba(15,23,42,.45)" }}>
+          <div className="modal-dialog">
+            <form className="modal-content border-0 shadow-lg" onSubmit={handleCrearUsuario}>
+              <div className="modal-header">
+                <h2 className="modal-title h5 fw-bold">Nuevo usuario corporativo</h2>
+                <button type="button" className="btn-close" onClick={() => setMostrarCrearUsuario(false)} />
+              </div>
+              <div className="modal-body">
+                {avisoAdmin && <div className="alert alert-danger py-2 small">{avisoAdmin}</div>}
+                {exitoAdmin && <div className="alert alert-success py-2 small">{exitoAdmin}</div>}
+                <div className="mb-2">
+                  <label className="form-label small fw-bold">Nombre completo *</label>
+                  <input
+                    className="form-control"
+                    required
+                    placeholder="Ej. Ana Martínez"
+                    value={nuevoUser.nombre}
+                    onChange={(e) => setNuevoUser({ ...nuevoUser, nombre: e.target.value })}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label small fw-bold">Usuario de acceso *</label>
+                  <input
+                    className="form-control"
+                    required
+                    placeholder="Ej. amartinez"
+                    value={nuevoUser.usuario_acceso}
+                    onChange={(e) => setNuevoUser({ ...nuevoUser, usuario_acceso: e.target.value })}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label small fw-bold">Correo corporativo *</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    required
+                    placeholder="amartinez@empresa.com"
+                    value={nuevoUser.email}
+                    onChange={(e) => setNuevoUser({ ...nuevoUser, email: e.target.value })}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Contraseña robusta *</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    required
+                    placeholder="Mín. 8 caracteres, mayúscula, número y especial"
+                    value={nuevoUser.clave}
+                    onChange={(e) => setNuevoUser({ ...nuevoUser, clave: e.target.value })}
+                  />
+                  <small className="text-secondary" style={{ fontSize: "0.75rem" }}>
+                    Debe contener mayúscula, minúscula, número y caracter especial (!@#$%&*).
+                  </small>
+                </div>
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="chkAdmin"
+                    checked={nuevoUser.es_admin}
+                    onChange={(e) => setNuevoUser({ ...nuevoUser, es_admin: e.target.checked })}
+                  />
+                  <label className="form-check-label small" htmlFor="chkAdmin">
+                    Privilegios de Administrador (gestión de usuarios y contraseñas)
+                  </label>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-light btn-sm" onClick={() => setMostrarCrearUsuario(false)}>Cerrar</button>
+                <button type="submit" className="btn btn-primary btn-sm">Crear usuario</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Admin: Recuperar / Restablecer Clave */}
+      {mostrarRecuperarClave && (
+        <div className="modal d-block" role="dialog" aria-modal="true" style={{ background: "rgba(15,23,42,.45)" }}>
+          <div className="modal-dialog">
+            <form className="modal-content border-0 shadow-lg" onSubmit={handleRecuperarClave}>
+              <div className="modal-header">
+                <h2 className="modal-title h5 fw-bold">Recuperar / Cambiar contraseña</h2>
+                <button type="button" className="btn-close" onClick={() => setMostrarRecuperarClave(false)} />
+              </div>
+              <div className="modal-body">
+                {avisoAdmin && <div className="alert alert-danger py-2 small">{avisoAdmin}</div>}
+                {exitoAdmin && <div className="alert alert-success py-2 small">{exitoAdmin}</div>}
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Seleccionar usuario *</label>
+                  <select
+                    className="form-select"
+                    required
+                    value={recuperarUser.usuario_id}
+                    onChange={(e) => setRecuperarUser({ ...recuperarUser, usuario_id: e.target.value })}
+                  >
+                    <option value="">Seleccione un usuario...</option>
+                    {catalogo.usuarios.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre} ({u.email || u.usuario_acceso})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-2">
+                  <label className="form-label small fw-bold">Nueva contraseña robusta *</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    required
+                    placeholder="Mín. 8 carácteres, mayúscula, número y especial"
+                    value={recuperarUser.nueva_clave}
+                    onChange={(e) => setRecuperarUser({ ...recuperarUser, nueva_clave: e.target.value })}
+                  />
+                  <small className="text-secondary" style={{ fontSize: "0.75rem" }}>
+                    Ejemplo: <code>ClaveSegura#2026</code>
+                  </small>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-light btn-sm" onClick={() => setMostrarRecuperarClave(false)}>Cerrar</button>
+                <button type="submit" className="btn btn-primary btn-sm">Actualizar contraseña</button>
               </div>
             </form>
           </div>

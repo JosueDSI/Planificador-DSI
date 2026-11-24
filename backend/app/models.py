@@ -40,7 +40,9 @@ class Usuario(Base):
     puesto_id: Mapped[int | None] = mapped_column(ForeignKey("puesto.id"))
     nombre: Mapped[str] = mapped_column(String(120), nullable=False)
     usuario_acceso: Mapped[str] = mapped_column(String(60), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(160), unique=True, nullable=False, default="")
     hash_clave: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    es_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
 

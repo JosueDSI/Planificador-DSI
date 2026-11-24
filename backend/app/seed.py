@@ -3,7 +3,8 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Actividad, Area, Categoria, Checklist, Comentario, Estado, Historial, Prioridad, Usuario
+from .auth_utils import hashear_clave
+from .models import Actividad, Area, Categoria, Checklist, Comentario, Estado, Historial, Prioridad, Puesto, Usuario
 
 
 def cargar_demo(db: Session) -> None:
@@ -52,16 +53,33 @@ def cargar_demo(db: Session) -> None:
     db.add_all(estados.values())
     db.flush()
 
+    puesto_admin = Puesto(nombre="Administrador DSI")
+    puesto_analista = Puesto(nombre="Analista de Sistemas")
+    db.add_all([puesto_admin, puesto_analista])
+    db.flush()
+
+    # Clave inicial demo robusta con mayúscula, minúscula, número y caracter especial
+    clave_inicial = hashear_clave("DsiPass@2026")
+
     personas = [
-        ("Usuario 1", "usuario1"),
-        ("Usuario 2", "usuario2"),
-        ("Usuario 3", "usuario3"),
-        ("Usuario 4", "usuario4"),
-        ("Usuario 5", "usuario5"),
+        ("Administrador", "admin", "admin@dsi.corp", puesto_admin.id, True),
+        ("Usuario 1", "usuario1", "usuario1@dsi.corp", puesto_analista.id, False),
+        ("Usuario 2", "usuario2", "usuario2@dsi.corp", puesto_analista.id, False),
+        ("Usuario 3", "usuario3", "usuario3@dsi.corp", puesto_analista.id, False),
+        ("Usuario 4", "usuario4", "usuario4@dsi.corp", puesto_analista.id, False),
+        ("Usuario 5", "usuario5", "usuario5@dsi.corp", puesto_analista.id, False),
     ]
     usuarios = {}
-    for nombre, acceso in personas:
-        usuario = Usuario(area_id=area.id, nombre=nombre, usuario_acceso=acceso, hash_clave="")
+    for nombre, acceso, email, p_id, es_adm in personas:
+        usuario = Usuario(
+            area_id=area.id,
+            nombre=nombre,
+            usuario_acceso=acceso,
+            email=email,
+            hash_clave=clave_inicial,
+            puesto_id=p_id,
+            es_admin=es_adm,
+        )
         db.add(usuario)
         usuarios[acceso] = usuario
     db.flush()

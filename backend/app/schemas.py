@@ -2,6 +2,8 @@ from datetime import date, time
 
 from pydantic import BaseModel, Field, field_validator
 
+from .auth_utils import validar_clave_robusta, validar_email_corporativo
+
 
 class ChecklistIn(BaseModel):
     id: int | None = None
@@ -57,3 +59,42 @@ class ComentarioIn(BaseModel):
 class EstadoIn(BaseModel):
     estado_id: int
     autor_id: int | None = None
+
+
+# --- Autenticación y Usuarios ---
+
+
+class LoginIn(BaseModel):
+    identificador: str = Field(min_length=3, max_length=160)
+    clave: str = Field(min_length=1)
+
+
+class UsuarioCrearIn(BaseModel):
+    nombre: str = Field(min_length=2, max_length=120)
+    usuario_acceso: str = Field(min_length=3, max_length=60)
+    email: str = Field(min_length=5, max_length=160)
+    clave: str
+    puesto_id: int | None = None
+    es_admin: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, v: str) -> str:
+        return validar_email_corporativo(v)
+
+    @field_validator("clave")
+    @classmethod
+    def check_clave(cls, v: str) -> str:
+        validar_clave_robusta(v)
+        return v
+
+
+class RecuperarClaveIn(BaseModel):
+    usuario_id: int
+    nueva_clave: str
+
+    @field_validator("nueva_clave")
+    @classmethod
+    def check_clave(cls, v: str) -> str:
+        validar_clave_robusta(v)
+        return v
