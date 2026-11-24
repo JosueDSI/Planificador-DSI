@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import { api } from "./api";
 
 const VISTAS = [
@@ -284,33 +285,81 @@ export default function App() {
       return;
     }
 
-    const encabezados = ["Clave", "Título", "Fecha", "Hora Inicio", "Hora Fin", "Categoría", "Prioridad", "Estado", "Responsable", "Solicitante", "Subtareas Hechas", "Total Subtareas", "Observaciones"];
-    const filas = actividadesDia.map((act) => [
-      `"${act.clave}"`,
-      `"${(act.titulo || "").replace(/"/g, '""')}"`,
-      `"${act.fecha}"`,
-      `"${act.hora_inicio}"`,
-      `"${act.hora_fin}"`,
-      `"${act.categoria.nombre}"`,
-      `"${act.prioridad.nombre}"`,
-      `"${act.estado.nombre}"`,
-      `"${(act.asignado_a?.nombre || "Sin asignar").replace(/"/g, '""')}"`,
-      `"${(act.reportado_por?.nombre || "").replace(/"/g, '""')}"`,
-      act.checklist.filter((c) => c.hecho).length,
-      act.checklist.length,
-      `"${(act.observaciones || "").replace(/"/g, '""')}"`,
-    ]);
+    const cerradas = actividadesDia.filter((a) => a.estado?.es_cierre).length;
+    const enProgreso = actividadesDia.filter((a) => a.estado?.columna === "en_progreso").length;
+    const pendientes = actividadesDia.length - cerradas - enProgreso;
+    const totalMin = actividadesDia.reduce((acc, act) => acc + Math.max(0, minutos(act.hora_fin) - minutos(act.hora_inicio)), 0);
 
-    const csvContent = "\uFEFF" + [encabezados.join(";"), ...filas.map((f) => f.join(";"))].join("\r\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `planificador_dsi_agenda_${dia}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Encabezado corporativo llamativo
+    const wsData = [
+      ["PLANIFICADOR DSI - REPORTE DIARIO DE ACTIVIDADES"],
+      [`Área: ${catalogo.area?.nombre || "Departamento de Sistemas e Informática (DSI)"} | Fecha: ${dia} | Generado por: ${usuarioActual?.nombre || "Usuario"}`],
+      [],
+      ["RESUMEN EJECUTIVO", `Total tareas: ${actividadesDia.length}`, `Completadas: ${cerradas}`, `En curso: ${enProgreso}`, `Pendientes: ${pendientes}`, `Tiempo agendado: ${Math.floor(totalMin / 60)}h ${totalMin % 60}m`],
+      [],
+      [
+        "Clave",
+        "Título de la Actividad",
+        "Categoría",
+        "Prioridad",
+        "Estado",
+        "Horario",
+        "Duración",
+        "Responsable Asignado",
+        "Puesto / Cargo",
+        "Solicitado Por",
+        "Subtareas",
+        "Observaciones",
+      ],
+    ];
+
+    actividadesDia.forEach((act) => {
+      const dur = Math.max(0, minutos(act.hora_fin) - minutos(act.hora_inicio));
+      const hechas = act.checklist?.filter((c) => c.hecho).length || 0;
+      const totalCheck = act.checklist?.length || 0;
+      wsData.push([
+        act.clave,
+        act.titulo || "",
+        act.categoria?.nombre || "",
+        act.prioridad?.nombre || "",
+        act.estado?.nombre || "",
+        `${act.hora_inicio} - ${act.hora_fin}`,
+        `${Math.floor(dur / 60)}h ${dur % 60}m`,
+        act.asignado_a?.nombre || "Sin asignar",
+        act.asignado_a?.puesto_nombre || act.asignado_a?.etiqueta_rol || "-",
+        act.reportado_por?.nombre || "",
+        totalCheck ? `${hechas}/${totalCheck}` : "-",
+        act.observaciones || "",
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Ajuste de anchos de columna para visualización profesional
+    ws["!cols"] = [
+      { wch: 12 }, // Clave
+      { wch: 40 }, // Título
+      { wch: 18 }, // Categoría
+      { wch: 14 }, // Prioridad
+      { wch: 16 }, // Estado
+      { wch: 16 }, // Horario
+      { wch: 12 }, // Duración
+      { wch: 24 }, // Responsable
+      { wch: 28 }, // Puesto
+      { wch: 22 }, // Solicitante
+      { wch: 12 }, // Subtareas
+      { wch: 38 }, // Observaciones
+    ];
+
+    // Fusión de celdas para el banner del título
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, `Agenda_${dia}`);
+    XLSX.writeFile(wb, `Planificador_DSI_${dia}.xlsx`);
   }
 
   function abrirNueva() {
@@ -996,9 +1045,9 @@ export default function App() {
                 type="button"
                 className="btn btn-outline-success btn-sm d-flex align-items-center gap-1"
                 onClick={exportarAgendaDia}
-                title="Descargar reporte en formato CSV (Excel) de las actividades de este día"
+                title="Descargar reporte en formato Excel (.xlsx) con resumen y métricas de este día"
               >
-                <span>📊</span> Exportar tareas del día (.CSV)
+                <span>📊</span> Exportar reporte (.XLSX)
               </button>
             </div>
             <div className="text-secondary small bg-light p-2 rounded border">

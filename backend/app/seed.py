@@ -54,20 +54,21 @@ def cargar_demo(db: Session) -> None:
     db.flush()
 
     puesto_admin = Puesto(nombre="Administrador DSI")
+    puesto_gerente = Puesto(nombre="Gerente de Sistemas e Informática")
+    puesto_dev = Puesto(nombre="Desarrollador, Analista y Soporte")
     puesto_analista = Puesto(nombre="Analista de Sistemas")
-    db.add_all([puesto_admin, puesto_analista])
+    puesto_soporte = Puesto(nombre="Soporte Técnico")
+    db.add_all([puesto_admin, puesto_gerente, puesto_dev, puesto_analista, puesto_soporte])
     db.flush()
 
-    # Clave inicial demo robusta con mayúscula, minúscula, número y caracter especial
+    # Clave inicial para todos los usuarios
     clave_inicial = hashear_clave("DsiPass@2026")
 
     personas = [
-        ("Administrador", "admin", "admin@amphos21.com", puesto_admin.id, True),
-        ("Usuario 1", "usuario1", "usuario1@amphos21.com", puesto_analista.id, False),
-        ("Usuario 2", "usuario2", "usuario2@amphos21.com", puesto_analista.id, False),
-        ("Usuario 3", "usuario3", "usuario3@amphos21.com", puesto_analista.id, False),
-        ("Usuario 4", "usuario4", "usuario4@amphos21.com", puesto_analista.id, False),
-        ("Usuario 5", "usuario5", "usuario5@amphos21.com", puesto_analista.id, False),
+        ("Administrador", "admin@amphos21.com", "admin@amphos21.com", puesto_admin.id, True),
+        ("Guissepi Rodriguez", "guissepi.rodriguez@amphos21.com", "guissepi.rodriguez@amphos21.com", puesto_dev.id, False),
+        ("Josué Albornoz", "josue.albornoz@amphos21.com", "josue.albornoz@amphos21.com", puesto_dev.id, True),
+        ("Miguel Mendoza", "mmendoza.licapa@amphos21.com", "mmendoza.licapa@amphos21.com", puesto_gerente.id, True),
     ]
     usuarios = {}
     for nombre, acceso, email, p_id, es_adm in personas:
@@ -110,56 +111,60 @@ def cargar_demo(db: Session) -> None:
     jueves = hoy + timedelta(days=2)
     ayer = hoy - timedelta(days=1)
 
+    miguel = "mmendoza.licapa@amphos21.com"
+    josue = "josue.albornoz@amphos21.com"
+    guissepi = "guissepi.rodriguez@amphos21.com"
+
     respaldos = nueva(
         "Revisar los respaldos de la semana",
         "Comprobar que las copias de bases y archivos del departamento quedaron completas.",
-        "Infraestructura", "Alta", "en_progreso", hoy, (8, 0), (9, 30), "usuario1", "usuario2",
+        "Infraestructura", "Alta", "en_progreso", hoy, (8, 0), (9, 30), miguel, josue,
     )
     nueva(
         "Documentar los cambios de la red local",
         "Dejar por escrito los ajustes hechos en el segmento del área.",
-        "Redes", "Media", "por_hacer", hoy, (10, 0), (12, 0), "usuario1", "usuario3",
+        "Redes", "Media", "por_hacer", hoy, (10, 0), (12, 0), miguel, guissepi,
     )
     portal = nueva(
         "Avanzar el portal interno",
         "Continuar las pantallas acordadas para consulta del equipo.",
-        "Desarrollo", "Alta", "en_progreso", hoy, (14, 0), (16, 30), "usuario1", "usuario4",
+        "Desarrollo", "Alta", "en_progreso", hoy, (14, 0), (16, 30), josue, guissepi,
     )
     nueva(
         "Coordinar la ventana con el proveedor de enlaces",
         "Confirmar el horario en que el proveedor puede intervenir el enlace.",
-        "Redes", "Baja", "en_espera", hoy, (16, 30), (17, 0), "usuario3", "usuario3",
+        "Redes", "Baja", "en_espera", hoy, (16, 30), (17, 0), josue, josue,
         "Se espera la confirmación del horario.",
     )
     nueva(
         "Cerrar el inventario de equipos",
         "Conciliar el listado de equipos asignados al departamento.",
-        "Datos", "Media", "completado", hoy, (9, 0), (10, 0), "usuario1", "usuario5",
+        "Datos", "Media", "completado", hoy, (9, 0), (10, 0), miguel, josue,
     )
     nueva(
         "Preparar la capacitación interna",
         "Ordenar los temas de la sesión con el equipo.",
-        "Proyectos", "Media", "por_hacer", manana, (9, 0), (11, 0), "usuario1", "usuario1",
+        "Proyectos", "Media", "por_hacer", manana, (9, 0), (11, 0), miguel, josue,
     )
     nueva(
         "Revisar los accesos del trimestre",
         "Verificar altas y bajas de acceso a los sistemas del área.",
-        "Seguridad", "Alta", "por_hacer", manana, (11, 0), (13, 0), "usuario1", "usuario2",
+        "Seguridad", "Alta", "por_hacer", manana, (11, 0), (13, 0), miguel, guissepi,
     )
     nueva(
         "Mantener los servidores de prueba",
         "Aplicar el mantenimiento programado del ambiente de pruebas.",
-        "Mantenimiento", "Media", "por_hacer", jueves, (8, 0), (10, 0), "usuario4", "usuario4",
+        "Mantenimiento", "Media", "por_hacer", jueves, (8, 0), (10, 0), josue, guissepi,
     )
     informe = nueva(
         "Armar el informe de avance del área",
         "Resumir las actividades de la semana para la revisión del jefe.",
-        "Proyectos", "Alta", "en_progreso", hoy, (11, 0), (12, 0), "usuario1", "usuario1",
+        "Proyectos", "Alta", "en_progreso", hoy, (11, 0), (12, 0), miguel, josue,
     )
     nueva(
         "Ordenar los scripts del departamento",
         "Agrupar los scripts que el equipo usa en la operación diaria.",
-        "Desarrollo", "Baja", "completado", ayer, (15, 0), (16, 30), "usuario5", "usuario5",
+        "Desarrollo", "Baja", "completado", ayer, (15, 0), (16, 30), josue, guissepi,
     )
     db.flush()
 
@@ -171,20 +176,20 @@ def cargar_demo(db: Session) -> None:
         Checklist(actividad_id=respaldos.id, texto="Copia de archivos", hecho=False, orden=2),
         Comentario(
             actividad_id=informe.id,
-            autor_id=usuarios["usuario4"].id,
+            autor_id=usuarios[guissepi].id,
             cuerpo="Falta el apartado de proyectos en curso.",
             creado_en=datetime.combine(hoy, time(11, 20)),
         ),
         Historial(
             actividad_id=informe.id,
-            autor_id=usuarios["usuario1"].id,
+            autor_id=usuarios[miguel].id,
             campo="alta",
             valor_nuevo="Armar el informe de avance del área",
             creado_en=datetime.combine(hoy, time(8, 10)),
         ),
         Historial(
             actividad_id=respaldos.id,
-            autor_id=usuarios["usuario2"].id,
+            autor_id=usuarios[josue].id,
             campo="estado",
             valor_anterior="Por hacer",
             valor_nuevo="En progreso",
