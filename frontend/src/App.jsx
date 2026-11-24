@@ -325,11 +325,11 @@ export default function App() {
           {errorLogin && <div className="alert alert-danger py-2 small">{errorLogin}</div>}
           <form onSubmit={handleLogin}>
             <div className="mb-3">
-              <label className="form-label small fw-semibold text-secondary">Usuario o correo corporativo</label>
+              <label className="form-label small fw-semibold text-secondary">Correo corporativo o usuario</label>
               <input
                 className="form-control"
                 required
-                placeholder="admin o usuario@dsi.corp"
+                placeholder="usuario@amphos21.com"
                 value={formLogin.identificador}
                 onChange={(e) => setFormLogin({ ...formLogin, identificador: e.target.value })}
               />
@@ -344,9 +344,6 @@ export default function App() {
                 value={formLogin.clave}
                 onChange={(e) => setFormLogin({ ...formLogin, clave: e.target.value })}
               />
-              <div className="text-muted" style={{ fontSize: "0.75rem", marginTop: 4 }}>
-                Demo: <code>admin</code> / <code>DsiPass@2026</code>
-              </div>
             </div>
             <button className="btn btn-primary w-100 py-2" type="submit" disabled={cargandoLogin}>
               {cargandoLogin ? "Verificando..." : "Iniciar sesión"}
@@ -730,7 +727,7 @@ export default function App() {
                     type="email"
                     className="form-control"
                     required
-                    placeholder="amartinez@empresa.com"
+                    placeholder="usuario@amphos21.com"
                     value={nuevoUser.email}
                     onChange={(e) => setNuevoUser({ ...nuevoUser, email: e.target.value })}
                   />

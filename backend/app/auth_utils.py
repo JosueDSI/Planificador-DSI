@@ -37,5 +37,5 @@ def validar_email_corporativo(email: str) -> str:
     email = email.strip().lower()
     patron = r"^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$"
     if not re.match(patron, email):
-        raise ValueError("Ingrese un correo corporativo válido (ej. usuario@empresa.com).")
+        raise ValueError("Ingrese un correo corporativo válido (ej. usuario@amphos21.com).")
     return email

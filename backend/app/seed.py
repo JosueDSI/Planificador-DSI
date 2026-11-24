@@ -62,12 +62,12 @@ def cargar_demo(db: Session) -> None:
     clave_inicial = hashear_clave("DsiPass@2026")
 
     personas = [
-        ("Administrador", "admin", "admin@dsi.corp", puesto_admin.id, True),
-        ("Usuario 1", "usuario1", "usuario1@dsi.corp", puesto_analista.id, False),
-        ("Usuario 2", "usuario2", "usuario2@dsi.corp", puesto_analista.id, False),
-        ("Usuario 3", "usuario3", "usuario3@dsi.corp", puesto_analista.id, False),
-        ("Usuario 4", "usuario4", "usuario4@dsi.corp", puesto_analista.id, False),
-        ("Usuario 5", "usuario5", "usuario5@dsi.corp", puesto_analista.id, False),
+        ("Administrador", "admin", "admin@amphos21.com", puesto_admin.id, True),
+        ("Usuario 1", "usuario1", "usuario1@amphos21.com", puesto_analista.id, False),
+        ("Usuario 2", "usuario2", "usuario2@amphos21.com", puesto_analista.id, False),
+        ("Usuario 3", "usuario3", "usuario3@amphos21.com", puesto_analista.id, False),
+        ("Usuario 4", "usuario4", "usuario4@amphos21.com", puesto_analista.id, False),
+        ("Usuario 5", "usuario5", "usuario5@amphos21.com", puesto_analista.id, False),
     ]
     usuarios = {}
     for nombre, acceso, email, p_id, es_adm in personas:
