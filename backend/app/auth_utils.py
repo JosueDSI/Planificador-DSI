@@ -21,16 +21,8 @@ def verificar_clave(clave: str, hash_almacenado: str) -> bool:
 
 
 def validar_clave_robusta(clave: str) -> None:
-    if len(clave) < 8:
-        raise ValueError("La contraseña debe tener al menos 8 caracteres.")
-    if not any(c.isupper() for c in clave):
-        raise ValueError("La contraseña debe contener al menos una letra mayúscula.")
-    if not any(c.islower() for c in clave):
-        raise ValueError("La contraseña debe contener al menos una letra minúscula.")
-    if not any(c.isdigit() for c in clave):
-        raise ValueError("La contraseña debe contener al menos un número.")
-    if not ESPECIALES.search(clave):
-        raise ValueError("La contraseña debe incluir al menos un caracter especial (ej. !@#$%&*).")
+    if not clave or len(clave.strip()) < 1:
+        raise ValueError("La contraseña no puede estar vacía.")
 
 
 def validar_email_corporativo(email: str) -> str:

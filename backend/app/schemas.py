@@ -71,9 +71,9 @@ class LoginIn(BaseModel):
 
 class UsuarioCrearIn(BaseModel):
     nombre: str = Field(min_length=2, max_length=120)
-    usuario_acceso: str = Field(min_length=3, max_length=60)
     email: str = Field(min_length=5, max_length=160)
-    clave: str
+    usuario_acceso: str | None = None
+    clave: str = Field(min_length=1)
     puesto_id: int | None = None
     es_admin: bool = False
 
@@ -82,19 +82,7 @@ class UsuarioCrearIn(BaseModel):
     def check_email(cls, v: str) -> str:
         return validar_email_corporativo(v)
 
-    @field_validator("clave")
-    @classmethod
-    def check_clave(cls, v: str) -> str:
-        validar_clave_robusta(v)
-        return v
-
 
 class RecuperarClaveIn(BaseModel):
     usuario_id: int
-    nueva_clave: str
-
-    @field_validator("nueva_clave")
-    @classmethod
-    def check_clave(cls, v: str) -> str:
-        validar_clave_robusta(v)
-        return v
+    nueva_clave: str = Field(min_length=1)

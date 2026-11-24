@@ -137,7 +137,7 @@ export default function App() {
 
   // Modal Crear Usuario (Admin)
   const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
-  const [nuevoUser, setNuevoUser] = useState({ nombre: "", usuario_acceso: "", email: "", clave: "", es_admin: false });
+  const [nuevoUser, setNuevoUser] = useState({ nombre: "", email: "", puesto_id: "", clave: "", es_admin: false });
   const [avisoAdmin, setAvisoAdmin] = useState("");
   const [exitoAdmin, setExitoAdmin] = useState("");
 
@@ -196,9 +196,18 @@ export default function App() {
     setAvisoAdmin("");
     setExitoAdmin("");
     try {
-      await api.crearUsuario(nuevoUser);
-      setExitoAdmin("Usuario corporativo creado exitosamente");
-      setNuevoUser({ nombre: "", usuario_acceso: "", email: "", clave: "", es_admin: false });
+      const emailAcc = nuevoUser.email.trim().toLowerCase();
+      const payload = {
+        nombre: nuevoUser.nombre.trim(),
+        email: emailAcc,
+        usuario_acceso: emailAcc,
+        puesto_id: nuevoUser.puesto_id ? Number(nuevoUser.puesto_id) : null,
+        clave: nuevoUser.clave,
+        es_admin: nuevoUser.es_admin,
+      };
+      await api.crearUsuario(payload);
+      setExitoAdmin("Usuario creado exitosamente");
+      setNuevoUser({ nombre: "", email: "", puesto_id: "", clave: "", es_admin: false });
       await cargar();
     } catch (err) {
       setAvisoAdmin(err.message);
@@ -1017,30 +1026,34 @@ export default function App() {
 
       {/* Modal Crear / Editar Actividad */}
       {form && (
-        <div className="modal d-block" role="dialog" aria-modal="true" style={{ background: "rgba(15,23,42,.45)" }}>
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
-            <form className="modal-content border-0 shadow-lg" onSubmit={guardar}>
-              <div className="modal-header">
-                <h2 className="modal-title h5 fw-bold">{editandoId ? "Editar actividad" : "Nueva actividad"}</h2>
+        <div className="modal-backdrop-custom" onClick={() => setForm(null)}>
+          <div className="modal-dialog modal-lg w-100" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+            <form className="modal-solido" onSubmit={guardar}>
+              <div className="modal-header d-flex justify-content-between align-items-center p-3 px-4">
+                <h2 className="modal-title h5 fw-bold mb-0 text-dark">{editandoId ? "Editar actividad" : "Nueva actividad"}</h2>
                 <button type="button" className="btn-close" aria-label="Cerrar" onClick={() => setForm(null)} />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-4">
                 {aviso && <div className="alert alert-danger py-2 small">{aviso}</div>}
-                <label className="form-label small fw-bold">Título *</label>
-                <input className="form-control mb-2" required value={form.titulo} onChange={(evento) => setForm({ ...form, titulo: evento.target.value })} />
-                <label className="form-label small fw-bold">Descripción</label>
-                <textarea className="form-control mb-2" rows="2" value={form.descripcion} onChange={(evento) => setForm({ ...form, descripcion: evento.target.value })} />
-                <div className="row g-2">
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Título de la actividad *</label>
+                  <input className="form-control" required value={form.titulo} onChange={(evento) => setForm({ ...form, titulo: evento.target.value })} placeholder="Ej. Revisar respaldos del área" />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Descripción</label>
+                  <textarea className="form-control" rows="2" value={form.descripcion} onChange={(evento) => setForm({ ...form, descripcion: evento.target.value })} />
+                </div>
+                <div className="row g-2 mb-3">
                   <div className="col-md-4">
                     <label className="form-label small fw-bold">Fecha</label>
                     <input className="form-control" type="date" required value={form.fecha} onChange={(evento) => setForm({ ...form, fecha: evento.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label small fw-bold">Inicio</label>
+                    <label className="form-label small fw-bold">Hora Inicio</label>
                     <input className="form-control" type="time" required value={form.hora_inicio} onChange={(evento) => setForm({ ...form, hora_inicio: evento.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label small fw-bold">Fin</label>
+                    <label className="form-label small fw-bold">Hora Fin</label>
                     <input className="form-control" type="time" required value={form.hora_fin} onChange={(evento) => setForm({ ...form, hora_fin: evento.target.value })} />
                   </div>
                   <div className="col-md-4">
@@ -1068,62 +1081,68 @@ export default function App() {
                     </select>
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label small fw-bold">Responsable asignado (Admin / Gestor)</label>
+                    <label className="form-label small fw-bold">Responsable asignado</label>
                     <select className="form-select" value={form.asignado_a} onChange={(evento) => setForm({ ...form, asignado_a: evento.target.value })}>
                       <option value="">Sin asignar</option>
                       {catalogo.usuarios.map((usuario) => <option key={usuario.id} value={usuario.id}>{usuario.nombre}</option>)}
                     </select>
                   </div>
                 </div>
-                <label className="form-label small fw-bold mt-2">Observaciones</label>
-                <textarea className="form-control mb-2" rows="2" value={form.observaciones} onChange={(evento) => setForm({ ...form, observaciones: evento.target.value })} />
-                <label className="form-label small fw-bold">Subtareas</label>
-                {form.checklist.map((item, indice) => (
-                  <div className="input-group mb-2" key={item.id ?? `nueva-${indice}`}>
-                    <div className="input-group-text">
-                      <input type="checkbox" checked={item.hecho} aria-label="Hecha" onChange={(evento) => {
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Observaciones</label>
+                  <textarea className="form-control" rows="2" value={form.observaciones} onChange={(evento) => setForm({ ...form, observaciones: evento.target.value })} />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold d-block">Subtareas</label>
+                  {form.checklist.map((item, indice) => (
+                    <div className="input-group mb-2" key={item.id ?? `nueva-${indice}`}>
+                      <div className="input-group-text bg-white">
+                        <input type="checkbox" checked={item.hecho} aria-label="Hecha" onChange={(evento) => {
+                          const checklist = [...form.checklist];
+                          checklist[indice] = { ...item, hecho: evento.target.checked };
+                          setForm({ ...form, checklist });
+                        }} />
+                      </div>
+                      <input className="form-control" value={item.texto} onChange={(evento) => {
                         const checklist = [...form.checklist];
-                        checklist[indice] = { ...item, hecho: evento.target.checked };
+                        checklist[indice] = { ...item, texto: evento.target.value };
                         setForm({ ...form, checklist });
                       }} />
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        aria-label="Quitar subtarea"
+                        onClick={() => setForm({ ...form, checklist: form.checklist.filter((_, idx) => idx !== indice) })}
+                      >
+                        ×
+                      </button>
                     </div>
-                    <input className="form-control" value={item.texto} onChange={(evento) => {
-                      const checklist = [...form.checklist];
-                      checklist[indice] = { ...item, texto: evento.target.value };
-                      setForm({ ...form, checklist });
-                    }} />
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      aria-label="Quitar subtarea"
-                      onClick={() => setForm({ ...form, checklist: form.checklist.filter((_, idx) => idx !== indice) })}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setForm({ ...form, checklist: [...form.checklist, { texto: "", hecho: false }] })}>
-                  + Agregar subtarea
-                </button>
+                  ))}
+                  <button type="button" className="btn btn-outline-primary btn-sm mt-1" onClick={() => setForm({ ...form, checklist: [...form.checklist, { texto: "", hecho: false }] })}>
+                    + Agregar subtarea
+                  </button>
+                </div>
                 {editando && (
-                  <div className="mt-3 pt-2 border-top">
-                    <h3 className="h6 fw-bold">Comentarios</h3>
-                    {editando.comentarios.length === 0 && <p className="text-secondary small">Sin comentarios.</p>}
+                  <div className="mt-4 pt-3 border-top">
+                    <h3 className="h6 fw-bold mb-2">Comentarios</h3>
+                    {editando.comentarios.length === 0 && <p className="text-secondary small">Sin comentarios aún.</p>}
                     {editando.comentarios.map((item) => (
-                      <p key={item.id} className="small mb-1"><strong>{item.autor.nombre}:</strong> {item.cuerpo}</p>
+                      <div key={item.id} className="p-2 rounded bg-light mb-2 small">
+                        <strong>{item.autor.nombre}:</strong> {item.cuerpo}
+                      </div>
                     ))}
                     <div className="input-group mt-2">
-                      <input className="form-control" value={nota} placeholder="Comentario para la revisión" onChange={(evento) => setNota(evento.target.value)} />
-                      <button className="btn btn-outline-primary" type="button" onClick={comentar}>Agregar</button>
+                      <input className="form-control form-control-sm" value={nota} placeholder="Escribe un comentario..." onChange={(evento) => setNota(evento.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); comentar(); } }} />
+                      <button className="btn btn-outline-primary btn-sm" type="button" onClick={comentar}>Comentar</button>
                     </div>
                   </div>
                 )}
               </div>
-              <div className="modal-footer justify-content-between">
-                {editandoId ? <button type="button" className="btn btn-outline-danger btn-sm" onClick={eliminar}>Eliminar</button> : <span />}
+              <div className="modal-footer p-3 px-4 justify-content-between">
+                {editandoId ? <button type="button" className="btn btn-outline-danger btn-sm" onClick={eliminar}>Eliminar actividad</button> : <span />}
                 <div className="d-flex gap-2">
                   <button type="button" className="btn btn-light btn-sm" onClick={() => setForm(null)}>Cancelar</button>
-                  <button className="btn btn-primary btn-sm" type="submit">Guardar</button>
+                  <button className="btn btn-primary btn-sm px-3" type="submit">Guardar cambios</button>
                 </div>
               </div>
             </form>
@@ -1131,20 +1150,20 @@ export default function App() {
         </div>
       )}
 
-      {/* Modal Admin: Crear Usuario Corporativo */}
+      {/* Modal Admin: Crear Usuario */}
       {mostrarCrearUsuario && (
-        <div className="modal d-block" role="dialog" aria-modal="true" style={{ background: "rgba(15,23,42,.45)" }}>
-          <div className="modal-dialog">
-            <form className="modal-content border-0 shadow-lg" onSubmit={handleCrearUsuario}>
-              <div className="modal-header">
-                <h2 className="modal-title h5 fw-bold">Nuevo usuario corporativo</h2>
+        <div className="modal-backdrop-custom" onClick={() => setMostrarCrearUsuario(false)}>
+          <div className="modal-dialog w-100" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <form className="modal-solido" onSubmit={handleCrearUsuario}>
+              <div className="modal-header d-flex justify-content-between align-items-center p-3 px-4">
+                <h2 className="modal-title h5 fw-bold mb-0 text-dark">Crear usuario</h2>
                 <button type="button" className="btn-close" onClick={() => setMostrarCrearUsuario(false)} />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-4">
                 {avisoAdmin && <div className="alert alert-danger py-2 small">{avisoAdmin}</div>}
                 {exitoAdmin && <div className="alert alert-success py-2 small">{exitoAdmin}</div>}
-                <div className="mb-2">
-                  <label className="form-label small fw-bold">Nombre completo *</label>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Nombre y apellido *</label>
                   <input
                     className="form-control"
                     required
@@ -1153,18 +1172,8 @@ export default function App() {
                     onChange={(e) => setNuevoUser({ ...nuevoUser, nombre: e.target.value })}
                   />
                 </div>
-                <div className="mb-2">
-                  <label className="form-label small fw-bold">Usuario de acceso *</label>
-                  <input
-                    className="form-control"
-                    required
-                    placeholder="Ej. amartinez"
-                    value={nuevoUser.usuario_acceso}
-                    onChange={(e) => setNuevoUser({ ...nuevoUser, usuario_acceso: e.target.value })}
-                  />
-                </div>
-                <div className="mb-2">
-                  <label className="form-label small fw-bold">Correo corporativo *</label>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Correo corporativo (usuario de acceso) *</label>
                   <input
                     type="email"
                     className="form-control"
@@ -1173,15 +1182,37 @@ export default function App() {
                     value={nuevoUser.email}
                     onChange={(e) => setNuevoUser({ ...nuevoUser, email: e.target.value })}
                   />
+                  <div className="form-text text-muted" style={{ fontSize: "0.75rem" }}>Este correo servirá como identificador único para iniciar sesión.</div>
                 </div>
                 <div className="mb-3">
-                  <label className="form-label small fw-bold">Contraseña robusta *</label>
+                  <label className="form-label small fw-bold">Puesto / Cargo *</label>
+                  <select
+                    className="form-select"
+                    required
+                    value={nuevoUser.puesto_id}
+                    onChange={(e) => setNuevoUser({ ...nuevoUser, puesto_id: e.target.value })}
+                  >
+                    <option value="">Selecciona un puesto...</option>
+                    {(catalogo.puestos?.length ? catalogo.puestos : [
+                      { id: 1, nombre: "Administrador DSI" },
+                      { id: 2, nombre: "Analista de Sistemas" },
+                      { id: 3, nombre: "Especialista Cloud e Infraestructura" },
+                      { id: 4, nombre: "Desarrollador de Software" },
+                      { id: 5, nombre: "Soporte Técnico" },
+                      { id: 6, nombre: "Especialista en Seguridad TI" },
+                    ]).map((p) => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Contraseña *</label>
                   <div className="input-group">
                     <input
                       type={verClaveNuevo ? "text" : "password"}
                       className="form-control"
                       required
-                      placeholder="Mín. 8 caracteres, mayúscula, número y especial"
+                      placeholder="••••••••"
                       value={nuevoUser.clave}
                       onChange={(e) => setNuevoUser({ ...nuevoUser, clave: e.target.value })}
                     />
@@ -1195,9 +1226,6 @@ export default function App() {
                       {verClaveNuevo ? "🙈" : "👁️"}
                     </button>
                   </div>
-                  <small className="text-secondary" style={{ fontSize: "0.75rem" }}>
-                    Debe contener mayúscula, minúscula, número y caracter especial (!@#$%&*).
-                  </small>
                 </div>
                 <div className="form-check">
                   <input
@@ -1208,13 +1236,13 @@ export default function App() {
                     onChange={(e) => setNuevoUser({ ...nuevoUser, es_admin: e.target.checked })}
                   />
                   <label className="form-check-label small" htmlFor="chkAdmin">
-                    Privilegios de Administrador (gestión de usuarios y contraseñas)
+                    Privilegios de Administrador (gestión de usuarios y asignaciones)
                   </label>
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer p-3 px-4 d-flex justify-content-end gap-2">
                 <button type="button" className="btn btn-light btn-sm" onClick={() => setMostrarCrearUsuario(false)}>Cerrar</button>
-                <button type="submit" className="btn btn-primary btn-sm">Crear usuario</button>
+                <button type="submit" className="btn btn-primary btn-sm px-3">Crear usuario</button>
               </div>
             </form>
           </div>
@@ -1223,14 +1251,14 @@ export default function App() {
 
       {/* Modal Admin: Recuperar / Restablecer Clave */}
       {mostrarRecuperarClave && (
-        <div className="modal d-block" role="dialog" aria-modal="true" style={{ background: "rgba(15,23,42,.45)" }}>
-          <div className="modal-dialog">
-            <form className="modal-content border-0 shadow-lg" onSubmit={handleRecuperarClave}>
-              <div className="modal-header">
-                <h2 className="modal-title h5 fw-bold">Recuperar / Cambiar contraseña</h2>
+        <div className="modal-backdrop-custom" onClick={() => setMostrarRecuperarClave(false)}>
+          <div className="modal-dialog w-100" style={{ maxWidth: 500 }} onClick={(e) => e.stopPropagation()}>
+            <form className="modal-solido" onSubmit={handleRecuperarClave}>
+              <div className="modal-header d-flex justify-content-between align-items-center p-3 px-4">
+                <h2 className="modal-title h5 fw-bold mb-0 text-dark">Restablecer contraseña</h2>
                 <button type="button" className="btn-close" onClick={() => setMostrarRecuperarClave(false)} />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-4">
                 {avisoAdmin && <div className="alert alert-danger py-2 small">{avisoAdmin}</div>}
                 {exitoAdmin && <div className="alert alert-success py-2 small">{exitoAdmin}</div>}
                 <div className="mb-3">
@@ -1249,14 +1277,14 @@ export default function App() {
                     ))}
                   </select>
                 </div>
-                <div className="mb-2">
-                  <label className="form-label small fw-bold">Nueva contraseña robusta *</label>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold">Nueva contraseña *</label>
                   <div className="input-group">
                     <input
                       type={verClaveRecuperar ? "text" : "password"}
                       className="form-control"
                       required
-                      placeholder="Mín. 8 carácteres, mayúscula, número y especial"
+                      placeholder="••••••••"
                       value={recuperarUser.nueva_clave}
                       onChange={(e) => setRecuperarUser({ ...recuperarUser, nueva_clave: e.target.value })}
                     />
@@ -1270,14 +1298,11 @@ export default function App() {
                       {verClaveRecuperar ? "🙈" : "👁️"}
                     </button>
                   </div>
-                  <small className="text-secondary" style={{ fontSize: "0.75rem" }}>
-                    Ejemplo: <code>ClaveSegura#2026</code>
-                  </small>
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer p-3 px-4 d-flex justify-content-end gap-2">
                 <button type="button" className="btn btn-light btn-sm" onClick={() => setMostrarRecuperarClave(false)}>Cerrar</button>
-                <button type="submit" className="btn btn-primary btn-sm">Actualizar contraseña</button>
+                <button type="submit" className="btn btn-primary btn-sm px-3">Guardar contraseña</button>
               </div>
             </form>
           </div>

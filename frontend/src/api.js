@@ -41,7 +41,8 @@ export const api = {
       pedir("/api/estados"),
       pedir("/api/actividades"),
       pedir("/api/historial"),
-    ]).then(([area, usuarios, categorias, prioridades, estados, actividades, historial]) => ({
+      pedir("/api/puestos").catch(() => []),
+    ]).then(([area, usuarios, categorias, prioridades, estados, actividades, historial, puestos]) => ({
       area,
       usuarios,
       categorias,
@@ -49,6 +50,7 @@ export const api = {
       estados,
       actividades,
       historial,
+      puestos: puestos || [],
     })),
   crear: (datos) => pedir("/api/actividades", { method: "POST", body: JSON.stringify(datos) }),
   guardar: (id, datos) => pedir(`/api/actividades/${id}`, { method: "PUT", body: JSON.stringify(datos) }),

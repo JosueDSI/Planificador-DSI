@@ -30,6 +30,7 @@ def usuario_json(usuario: Usuario) -> dict:
         "email": usuario.email,
         "es_admin": bool(usuario.es_admin),
         "puesto_id": usuario.puesto_id,
+        "puesto_nombre": usuario.puesto.nombre if usuario.puesto else None,
         "etiqueta_rol": etiqueta_rol(usuario),
     }
 
@@ -166,13 +167,11 @@ def login(datos: LoginIn, db: Session = Depends(get_db)):
 @router.post("/usuarios", status_code=201)
 def crear_usuario(datos: UsuarioCrearIn, db: Session = Depends(get_db)):
     area = area_activa(db)
-    user_acc = datos.usuario_acceso.strip().lower()
     user_email = datos.email.strip().lower()
+    user_acc = (datos.usuario_acceso or user_email).strip().lower()
 
-    if db.scalar(select(Usuario.id).where(Usuario.usuario_acceso == user_acc)):
-        raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
-    if db.scalar(select(Usuario.id).where(Usuario.email == user_email)):
-        raise HTTPException(status_code=400, detail="El correo corporativo ya está registrado")
+    if db.scalar(select(Usuario.id).where((Usuario.usuario_acceso == user_acc) | (Usuario.email == user_email))):
+        raise HTTPException(status_code=400, detail="El correo o usuario ya está registrado")
 
     if datos.puesto_id is not None and db.get(Puesto, datos.puesto_id) is None:
         raise HTTPException(status_code=400, detail="Puesto seleccionado no existe")
