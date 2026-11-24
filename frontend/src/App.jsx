@@ -131,6 +131,9 @@ export default function App() {
   const [formLogin, setFormLogin] = useState({ identificador: "", clave: "" });
   const [errorLogin, setErrorLogin] = useState("");
   const [cargandoLogin, setCargandoLogin] = useState(false);
+  const [verClaveLogin, setVerClaveLogin] = useState(false);
+  const [verClaveNuevo, setVerClaveNuevo] = useState(false);
+  const [verClaveRecuperar, setVerClaveRecuperar] = useState(false);
 
   // Modal Crear Usuario (Admin)
   const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
@@ -362,14 +365,25 @@ export default function App() {
             </div>
             <div className="mb-4">
               <label className="form-label small fw-semibold text-secondary">Contraseña</label>
-              <input
-                type="password"
-                className="form-control"
-                required
-                placeholder="••••••••"
-                value={formLogin.clave}
-                onChange={(e) => setFormLogin({ ...formLogin, clave: e.target.value })}
-              />
+              <div className="input-group">
+                <input
+                  type={verClaveLogin ? "text" : "password"}
+                  className="form-control"
+                  required
+                  placeholder="••••••••"
+                  value={formLogin.clave}
+                  onChange={(e) => setFormLogin({ ...formLogin, clave: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setVerClaveLogin(!verClaveLogin)}
+                  title={verClaveLogin ? "Ocultar contraseña" : "Ver contraseña"}
+                  tabIndex="-1"
+                >
+                  {verClaveLogin ? "🙈" : "👁️"}
+                </button>
+              </div>
             </div>
             <button className="btn btn-primary w-100 py-2" type="submit" disabled={cargandoLogin}>
               {cargandoLogin ? "Verificando..." : "Iniciar sesión"}
@@ -993,14 +1007,25 @@ export default function App() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label small fw-bold">Contraseña robusta *</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    required
-                    placeholder="Mín. 8 caracteres, mayúscula, número y especial"
-                    value={nuevoUser.clave}
-                    onChange={(e) => setNuevoUser({ ...nuevoUser, clave: e.target.value })}
-                  />
+                  <div className="input-group">
+                    <input
+                      type={verClaveNuevo ? "text" : "password"}
+                      className="form-control"
+                      required
+                      placeholder="Mín. 8 caracteres, mayúscula, número y especial"
+                      value={nuevoUser.clave}
+                      onChange={(e) => setNuevoUser({ ...nuevoUser, clave: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setVerClaveNuevo(!verClaveNuevo)}
+                      title={verClaveNuevo ? "Ocultar contraseña" : "Ver contraseña"}
+                      tabIndex="-1"
+                    >
+                      {verClaveNuevo ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                   <small className="text-secondary" style={{ fontSize: "0.75rem" }}>
                     Debe contener mayúscula, minúscula, número y caracter especial (!@#$%&*).
                   </small>
@@ -1057,14 +1082,25 @@ export default function App() {
                 </div>
                 <div className="mb-2">
                   <label className="form-label small fw-bold">Nueva contraseña robusta *</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    required
-                    placeholder="Mín. 8 carácteres, mayúscula, número y especial"
-                    value={recuperarUser.nueva_clave}
-                    onChange={(e) => setRecuperarUser({ ...recuperarUser, nueva_clave: e.target.value })}
-                  />
+                  <div className="input-group">
+                    <input
+                      type={verClaveRecuperar ? "text" : "password"}
+                      className="form-control"
+                      required
+                      placeholder="Mín. 8 carácteres, mayúscula, número y especial"
+                      value={recuperarUser.nueva_clave}
+                      onChange={(e) => setRecuperarUser({ ...recuperarUser, nueva_clave: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setVerClaveRecuperar(!verClaveRecuperar)}
+                      title={verClaveRecuperar ? "Ocultar contraseña" : "Ver contraseña"}
+                      tabIndex="-1"
+                    >
+                      {verClaveRecuperar ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                   <small className="text-secondary" style={{ fontSize: "0.75rem" }}>
                     Ejemplo: <code>ClaveSegura#2026</code>
                   </small>
