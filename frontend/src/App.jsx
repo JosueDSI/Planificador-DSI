@@ -695,69 +695,117 @@ export default function App() {
           <div className="row g-3 mb-4">
             {/* Gráfica Circular / Donut por Estado */}
             <div className="col-lg-6">
-              <section className="card card-body border shadow-sm h-100 bg-white">
+              <section className="card card-body border shadow-sm h-100 bg-white d-flex flex-column justify-content-between p-3 p-xl-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h2 className="h6 fw-bold mb-0 text-dark">Distribución por Estado</h2>
-                  <span className="text-muted small">Haz clic para filtrar</span>
-                </div>
-                <div className="row align-items-center">
-                  <div className="col-sm-5 text-center position-relative my-2">
-                    <svg viewBox="0 0 36 36" style={{ width: "135px", height: "135px", transform: "rotate(-90deg)" }}>
-                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" strokeWidth="3.8" />
-                      {(() => {
-                        let offset = 0;
-                        return (resumen.porEstado || []).map((est) => {
-                          const strokeDasharray = `${est.porcentaje} ${100 - est.porcentaje}`;
-                          const currentOffset = offset;
-                          offset += est.porcentaje;
-                          const esSeleccionado = filtros.estado === String(est.id);
-                          return (
-                            <circle
-                              key={est.id}
-                              cx="18"
-                              cy="18"
-                              r="15.915"
-                              fill="none"
-                              stroke={est.color}
-                              strokeWidth={esSeleccionado ? "5.5" : "3.8"}
-                              strokeDasharray={strokeDasharray}
-                              strokeDashoffset={-currentOffset}
-                              style={{ cursor: "pointer", transition: "all 0.3s ease" }}
-                              onClick={() => setFiltros({ ...filtros, estado: filtros.estado === String(est.id) ? "" : String(est.id) })}
-                            />
-                          );
-                        });
-                      })()}
-                    </svg>
-                    <div
-                      className="position-absolute top-50 start-50 translate-middle text-center"
-                      style={{ pointerEvents: "none" }}
+                  <div>
+                    <h2 className="h6 fw-bold mb-0 text-dark">Distribución por Estado</h2>
+                    <span className="text-muted small">Haz clic en un estado para filtrar</span>
+                  </div>
+                  {filtros.estado && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm py-0 px-2"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setFiltros({ ...filtros, estado: "" })}
                     >
-                      <span className="fs-4 fw-bold d-block text-dark lh-1">{resumen.total}</span>
-                      <span className="text-muted fw-semibold" style={{ fontSize: "0.68rem" }}>ACTIVIDADES</span>
+                      Quitar filtro
+                    </button>
+                  )}
+                </div>
+
+                <div className="row align-items-center g-3 my-auto">
+                  {/* Gráfico Donut Agrandado y Centrado */}
+                  <div className="col-sm-5 d-flex flex-column align-items-center justify-content-center text-center">
+                    <div className="position-relative d-inline-block" style={{ width: "175px", height: "175px" }}>
+                      <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="4.2" />
+                        {(() => {
+                          let offset = 0;
+                          return (resumen.porEstado || []).map((est) => {
+                            const strokeDasharray = `${est.porcentaje} ${100 - est.porcentaje}`;
+                            const currentOffset = offset;
+                            offset += est.porcentaje;
+                            const esSeleccionado = filtros.estado === String(est.id);
+                            return (
+                              <circle
+                                key={est.id}
+                                cx="18"
+                                cy="18"
+                                r="15.915"
+                                fill="none"
+                                stroke={est.color}
+                                strokeWidth={esSeleccionado ? "5.8" : "4.2"}
+                                strokeDasharray={strokeDasharray}
+                                strokeDashoffset={-currentOffset}
+                                style={{
+                                  cursor: "pointer",
+                                  opacity: filtros.estado && !esSeleccionado ? 0.35 : 1,
+                                  transition: "all 0.25s ease",
+                                }}
+                                onClick={() => setFiltros({ ...filtros, estado: esSeleccionado ? "" : String(est.id) })}
+                              />
+                            );
+                          });
+                        })()}
+                      </svg>
+                      <div
+                        className="position-absolute top-50 start-50 translate-middle text-center"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        <span className="fs-2 fw-bold d-block text-dark lh-1">{resumen.total}</span>
+                        <span className="text-secondary fw-bold" style={{ fontSize: "0.68rem", letterSpacing: "0.04em" }}>TAREAS</span>
+                      </div>
+                    </div>
+
+                    {/* Resumen rápido debajo del donut */}
+                    <div className="d-flex justify-content-center align-items-center gap-3 mt-2 pt-2 border-top w-100" style={{ maxWidth: 200 }}>
+                      <div className="text-center">
+                        <div className="text-muted" style={{ fontSize: "0.68rem" }}>EN FLUJO</div>
+                        <div className="fw-bold text-dark small">{resumen.progreso + resumen.pendientes}</div>
+                      </div>
+                      <div className="border-start" style={{ height: 22 }}></div>
+                      <div className="text-center">
+                        <div className="text-muted" style={{ fontSize: "0.68rem" }}>RESUELTAS</div>
+                        <div className="fw-bold text-success small">{resumen.cerradas}</div>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Lista de Estados con Barras de Progreso */}
                   <div className="col-sm-7">
-                    <div className="d-flex flex-column gap-2">
+                    <div className="d-flex flex-column gap-2 justify-content-center">
                       {(resumen.porEstado || []).map((est) => {
                         const activo = filtros.estado === String(est.id);
                         return (
                           <div
                             key={est.id}
-                            className={`d-flex justify-content-between align-items-center p-2 rounded border ${activo ? "bg-light border-primary" : "bg-white"}`}
+                            className={`p-2 rounded border ${activo ? "bg-light border-primary shadow-sm" : "bg-white"}`}
                             style={{ cursor: "pointer", transition: "all 0.15s ease" }}
                             onClick={() => setFiltros({ ...filtros, estado: activo ? "" : String(est.id) })}
                             title={`Clic para filtrar por ${est.nombre}`}
                           >
-                            <div className="d-flex align-items-center gap-2">
-                              <span style={{ width: 12, height: 12, borderRadius: "50%", background: est.color }}></span>
-                              <span className={`small ${activo ? "fw-bold text-primary" : "fw-medium text-dark"}`}>
-                                {est.nombre}
+                            <div className="d-flex justify-content-between align-items-center small mb-1">
+                              <div className="d-flex align-items-center gap-2">
+                                <span style={{ width: 10, height: 10, borderRadius: "50%", background: est.color, flexShrink: 0 }}></span>
+                                <span className={`${activo ? "fw-bold text-primary" : "fw-semibold text-dark"}`}>
+                                  {est.nombre}
+                                </span>
+                              </div>
+                              <span className={`badge ${activo ? "bg-primary text-white" : "bg-light text-dark border"} fw-bold`} style={{ fontSize: "0.75rem" }}>
+                                {est.cantidad} <span className="fw-normal" style={{ opacity: 0.85 }}>({est.porcentaje}%)</span>
                               </span>
                             </div>
-                            <span className="badge text-dark bg-light border fw-bold" style={{ fontSize: "0.75rem" }}>
-                              {est.cantidad} ({est.porcentaje}%)
-                            </span>
+                            <div className="progress" style={{ height: 6, background: "#f1f5f9", borderRadius: 4 }}>
+                              <div
+                                className="progress-bar"
+                                style={{
+                                  width: `${est.porcentaje}%`,
+                                  background: est.color,
+                                  borderRadius: 4,
+                                  opacity: filtros.estado && !activo ? 0.35 : 1,
+                                }}
+                              ></div>
+                            </div>
                           </div>
                         );
                       })}
@@ -769,12 +817,24 @@ export default function App() {
 
             {/* Barras de Actividades por Categoría */}
             <div className="col-lg-6">
-              <section className="card card-body border shadow-sm h-100 bg-white">
+              <section className="card card-body border shadow-sm h-100 bg-white d-flex flex-column justify-content-between p-3 p-xl-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h2 className="h6 fw-bold mb-0 text-dark">Actividades por Categoría</h2>
-                  <span className="text-muted small">Haz clic para filtrar</span>
+                  <div>
+                    <h2 className="h6 fw-bold mb-0 text-dark">Actividades por Categoría</h2>
+                    <span className="text-muted small">Haz clic para filtrar</span>
+                  </div>
+                  {filtros.categoria && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm py-0 px-2"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setFiltros({ ...filtros, categoria: "" })}
+                    >
+                      Quitar filtro
+                    </button>
+                  )}
                 </div>
-                <div className="d-flex flex-column gap-2 justify-content-center h-100">
+                <div className="d-flex flex-column gap-2 justify-content-center my-auto">
                   {(resumen.porCategoria || []).map((cat) => {
                     const activo = filtros.categoria === String(cat.id);
                     return (
