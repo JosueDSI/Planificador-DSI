@@ -38,6 +38,8 @@ ES_SQLITE = DATABASE_URL.startswith("sqlite")
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if ES_SQLITE else {},
+    pool_pre_ping=True,
+    pool_recycle=300 if not ES_SQLITE else -1,
 )
 
 if ES_SQLITE:
