@@ -196,61 +196,71 @@ body {
 }
 
 /* ==========================================================
-   ANIMACIÓN DE LLENADO LÍQUIDO DEL LOGO (WATER PHYSICS)
+   ANIMACIÓN DE LLENADO LÍQUIDO DEL SÍMBOLO AMPHOS 21 (A21)
    ========================================================== */
-.liquid-logo-stage {
+.liquid-symbol-stage {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1.25rem 0;
-}
-
-.liquid-logo-frame {
-  position: relative;
-  width: 250px;
-  height: 76px;
-  margin: 0 auto;
-  overflow: hidden;
+  width: 170px;
+  height: 142px;
+  margin: 1.5rem auto;
   user-select: none;
 }
 
-/* Capa Base: Logo tenue / marca de agua */
-.liquid-logo-frame .logo-layer-base {
+/* Balanceo de física de fluidos */
+.slosh-physics {
+  animation: sloshFluid 3.2s infinite ease-in-out;
+}
+
+@keyframes sloshFluid {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(1deg); }
+  75% { transform: rotate(-1deg); }
+}
+
+/* Capa 1: Silueta tenue del isotipo (efecto recipiente de cristal) */
+.symbol-ghost {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  opacity: 0.2;
+  opacity: 0.16;
   filter: grayscale(100%);
+  pointer-events: none;
 }
 
-/* Contenedor del líquido ascendente */
-.liquid-fill-wrapper {
+/* Capa 2: Contenedor con máscara de recorte EXACTA a la silueta del logo */
+.symbol-liquid-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: url('/static/amphos21-symbol.png');
+  mask-image: url('/static/amphos21-symbol.png');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  overflow: hidden;
+}
+
+/* Nivel del líquido ascendente con degradado cálido corporativo */
+.liquid-water-reservoir {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 0%;
-  overflow: hidden;
-  transition: height 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+  background: linear-gradient(180deg, #ff9800 0%, #f07d00 50%, #d65100 100%);
+  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.45);
+  transition: height 0.14s cubic-bezier(0.25, 0.8, 0.45, 1);
 }
 
-/* Logo activo vibrante revelado por el agua */
-.liquid-fill-wrapper .logo-layer-active {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 250px;
-  height: 76px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 10px rgba(240, 125, 0, 0.4));
-}
-
-/* Superficie con oleaje y física de fluidos */
+/* Superficie con ondas de agua */
 .liquid-wave-surface {
   position: absolute;
   top: -12px;
@@ -270,13 +280,15 @@ body {
 }
 
 .liquid-wave.wave-front {
-  fill: rgba(240, 125, 0, 0.75);
-  animation: waveDriftFront 1.8s infinite linear;
+  fill: #ffaa00;
+  animation: waveDriftFront 1.5s infinite linear;
+  opacity: 0.95;
 }
 
 .liquid-wave.wave-back {
-  fill: rgba(217, 111, 0, 0.5);
-  animation: waveDriftBack 2.6s infinite linear;
+  fill: #e65100;
+  animation: waveDriftBack 2.2s infinite linear;
+  opacity: 0.7;
 }
 
 @keyframes waveDriftFront {
@@ -292,7 +304,7 @@ body {
 /* Burbujas flotantes de física líquida */
 .liquid-bubble {
   position: absolute;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   pointer-events: none;
   animation: bubbleRise 1.8s infinite ease-in;
@@ -312,32 +324,6 @@ body {
     opacity: 0;
     transform: scale(1.1) translateX(6px);
   }
-}
-
-/* Indicador de progreso de agua */
-.liquid-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--amphos-orange);
-  background: var(--amphos-orange-subtle);
-  border: 1px solid var(--amphos-orange-border);
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  margin-top: 0.85rem;
-  box-shadow: 0 2px 6px rgba(240, 125, 0, 0.12);
-}
-
-.liquid-droplet {
-  display: inline-block;
-  animation: dropletBounce 0.8s infinite alternate ease-in-out;
-}
-
-@keyframes dropletBounce {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-3px); }
 }
 
 /* ==========================================================

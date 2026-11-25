@@ -578,43 +578,44 @@ export default function App() {
       <main className="container d-flex align-items-center justify-content-center" style={{ minHeight: "85vh" }}>
         <div className="card card-body shadow-sm border-0 p-4" style={{ maxWidth: 420, width: "100%", borderRadius: 16, borderTop: "4px solid #f07d00" }}>
           {cargandoLogin ? (
-            <div className="liquid-logo-stage text-center py-4">
-              <div className="liquid-logo-frame mb-3">
-                {/* Capa base en escala de grises tenue */}
+            <div className="py-4 d-flex flex-column align-items-center justify-content-center">
+              <div className="liquid-symbol-stage slosh-physics">
+                {/* Silueta base del isotipo como recipiente de cristal */}
                 <img
-                  src="/static/amphos21-logo.png"
+                  src="/static/amphos21-symbol.png"
                   alt="Amphos 21"
-                  className="logo-layer-base"
+                  className="symbol-ghost"
                 />
 
-                {/* Capa de líquido ascendente con física de agua y olas */}
-                <div className="liquid-fill-wrapper" style={{ height: `${liquidProgreso}%` }}>
-                  <img
-                    src="/static/amphos21-logo.png"
-                    alt="Amphos 21"
-                    className="logo-layer-active"
-                  />
-                  {/* Superficie líquida con oleaje ondulante */}
-                  <div className="liquid-wave-surface">
-                    <svg className="liquid-wave wave-back" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                      <path d="M0,0 C150,90 350,-40 500,50 C650,120 900,10 1200,40 L1200,120 L0,120 Z"></path>
-                    </svg>
-                    <svg className="liquid-wave wave-front" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                      <path d="M0,20 C200,100 450,-30 700,60 C900,110 1050,20 1200,50 L1200,120 L0,120 Z"></path>
-                    </svg>
+                {/* Contenedor con máscara exacta a la silueta del isotipo A21 */}
+                <div
+                  className="symbol-liquid-mask"
+                  style={{
+                    WebkitMaskImage: "url(/static/amphos21-symbol.png)",
+                    maskImage: "url(/static/amphos21-symbol.png)",
+                  }}
+                >
+                  {/* Nivel de líquido ascendente con física */}
+                  <div
+                    className="liquid-water-reservoir"
+                    style={{ height: `${liquidProgreso}%` }}
+                  >
+                    {/* Superficie con oleaje ondulante */}
+                    <div className="liquid-wave-surface">
+                      <svg className="liquid-wave wave-back" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                        <path d="M0,25 C150,90 350,-20 500,45 C650,110 900,10 1200,35 L1200,120 L0,120 Z"></path>
+                      </svg>
+                      <svg className="liquid-wave wave-front" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                        <path d="M0,40 C200,105 450,-15 700,55 C900,110 1050,20 1200,45 L1200,120 L0,120 Z"></path>
+                      </svg>
+                    </div>
+                    {/* Burbujas de aire flotantes */}
+                    <div className="liquid-bubble" style={{ width: 8, height: 8, left: "26%", animationDelay: "0s" }}></div>
+                    <div className="liquid-bubble" style={{ width: 11, height: 11, left: "52%", animationDelay: "0.6s" }}></div>
+                    <div className="liquid-bubble" style={{ width: 7, height: 7, left: "74%", animationDelay: "1.1s" }}></div>
                   </div>
-                  {/* Burbujas flotantes con física de ascenso */}
-                  <div className="liquid-bubble" style={{ width: 8, height: 8, left: "20%", animationDelay: "0s" }}></div>
-                  <div className="liquid-bubble" style={{ width: 12, height: 12, left: "50%", animationDelay: "0.6s" }}></div>
-                  <div className="liquid-bubble" style={{ width: 7, height: 7, left: "75%", animationDelay: "1.1s" }}></div>
                 </div>
               </div>
-
-              <div className="liquid-status-badge">
-                <span className="liquid-droplet">💧</span>
-                <span>Cargando perfil... {liquidProgreso}%</span>
-              </div>
-              <p className="text-secondary small mt-2 mb-0">Iniciando sesión segura en DSI</p>
             </div>
           ) : (
             <>
