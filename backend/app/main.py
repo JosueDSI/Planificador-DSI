@@ -57,4 +57,13 @@ async def asegurar_bd(request, call_next):
     return await call_next(request)
 
 
+from fastapi.staticfiles import StaticFiles
+
 app.include_router(router)
+
+# Servir archivos estáticos (logo institucional, favicons, etc.)
+_dir_estatica = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(_dir_estatica):
+    os.makedirs(_dir_estatica, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_dir_estatica), name="static")
+

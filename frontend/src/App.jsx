@@ -257,7 +257,7 @@ export default function App() {
       return { ...cat, cantidad: cant, porcentaje: total ? Math.round((cant * 100) / total) : 0 };
     }).filter((c) => c.cantidad > 0);
 
-    // Métricas por estado para gráfica circular / donut
+    // Métricas por estado para gráfica circular / donut (Paleta Amphos 21 / RSK)
     const porEstado = (catalogo?.estados || []).map((est) => {
       const cant = visibles.filter((a) => a.estado.id === est.id).length;
       return {
@@ -266,12 +266,12 @@ export default function App() {
         porcentaje: total ? Math.round((cant * 100) / total) : 0,
         color:
           est.columna === "completado"
-            ? "#10b981"
+            ? "#94c11f"
             : est.columna === "en_progreso"
-            ? "#3b82f6"
+            ? "#f07d00"
             : est.columna === "en_espera"
             ? "#f59e0b"
-            : "#64748b",
+            : "#7f7f7e",
       };
     });
 
@@ -290,9 +290,9 @@ export default function App() {
     const pendientes = actividadesDia.length - cerradas - enProgreso;
     const totalMin = actividadesDia.reduce((acc, act) => acc + Math.max(0, minutos(act.hora_fin) - minutos(act.hora_inicio)), 0);
 
-    // Encabezado corporativo llamativo
+    // Encabezado corporativo llamativo Amphos 21
     const wsData = [
-      ["PLANIFICADOR DSI - REPORTE DIARIO DE ACTIVIDADES"],
+      ["AMPHOS 21 - PLANIFICADOR DSI - REPORTE DIARIO DE ACTIVIDADES"],
       [`Área: ${catalogo.area?.nombre || "Departamento de Sistemas e Informática (DSI)"} | Fecha: ${dia} | Generado por: ${usuarioActual?.nombre || "Usuario"}`],
       [],
       ["RESUMEN EJECUTIVO", `Total tareas: ${actividadesDia.length}`, `Completadas: ${cerradas}`, `En curso: ${enProgreso}`, `Pendientes: ${pendientes}`, `Tiempo agendado: ${Math.floor(totalMin / 60)}h ${totalMin % 60}m`],
@@ -437,14 +437,20 @@ export default function App() {
     );
   }
 
-  // Pantalla de Login minimalista si no hay sesión
+  // Pantalla de Login corporativa Amphos 21 si no hay sesión
   if (!usuarioActual) {
     return (
       <main className="container d-flex align-items-center justify-content-center" style={{ minHeight: "85vh" }}>
-        <div className="card card-body shadow-sm border-0 p-4" style={{ maxWidth: 400, width: "100%", borderRadius: 16 }}>
+        <div className="card card-body shadow-sm border-0 p-4" style={{ maxWidth: 420, width: "100%", borderRadius: 16, borderTop: "4px solid #f07d00" }}>
           <div className="text-center mb-4">
-            <h1 className="h4 fw-bold mb-1">Planificador DSI</h1>
-            <p className="text-secondary small mb-0">Acceso corporativo del departamento</p>
+            <img
+              src="/static/amphos21-logo.png"
+              alt="Amphos 21 - an RSK company"
+              style={{ maxHeight: 52, maxWidth: "100%", objectFit: "contain" }}
+              className="mb-3"
+            />
+            <h1 className="h4 fw-bold mb-1 text-dark">Planificador DSI</h1>
+            <p className="text-secondary small mb-0">Departamento de Sistemas e Informática</p>
           </div>
           {errorLogin && <div className="alert alert-danger py-2 small">{errorLogin}</div>}
           <form onSubmit={handleLogin}>
@@ -499,14 +505,25 @@ export default function App() {
 
   return (
     <main className="container-fluid py-4" style={{ maxWidth: 1180 }}>
-      {/* Barra superior Minimalista con Auth */}
+      {/* Barra superior con Identidad Amphos 21 y Auth */}
       <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-2 border-bottom">
-        <div>
-          <div className="d-flex align-items-center gap-2">
-            <h1 className="h4 mb-0 fw-bold">Planificador DSI</h1>
-            {usuarioActual.es_admin && <span className="badge bg-danger-subtle text-danger border border-danger-subtle">Admin</span>}
+        <div className="d-flex align-items-center gap-3">
+          <img
+            src="/static/amphos21-logo.png"
+            alt="Amphos 21"
+            style={{ height: 38, width: "auto", objectFit: "contain" }}
+          />
+          <div className="border-start ps-3" style={{ borderColor: "#cbd5e1" }}>
+            <div className="d-flex align-items-center gap-2">
+              <h1 className="h5 mb-0 fw-bold text-dark">Planificador DSI</h1>
+              {usuarioActual.es_admin && (
+                <span className="badge" style={{ background: "#fff3e8", color: "#f07d00", border: "1px solid #fcd8b8" }}>
+                  Admin
+                </span>
+              )}
+            </div>
+            <p className="mb-0 text-secondary small" style={{ fontSize: "0.76rem" }}>{catalogo.area.nombre}</p>
           </div>
-          <p className="mb-0 text-secondary small">{catalogo.area.nombre}</p>
         </div>
 
         <div className="d-flex align-items-center gap-2">
@@ -610,14 +627,14 @@ export default function App() {
 
       {vista === "resumen" && (
         <>
-          {/* Tarjetas KPI Superiores: Grid ajustado sin desbordes, con colores sólidos contrastados y clicables */}
+          {/* Tarjetas KPI Superiores con Paleta Corporativa Amphos 21 / RSK */}
           <div className="row g-2 g-xl-3 mb-4">
             <div className="col-6 col-md-4 col-xl-2">
               <div
                 className={`card card-body text-start border shadow-sm h-100 p-2 p-xl-3 ${!filtros.estado && !filtros.prioridad ? "ring-active" : ""}`}
                 style={{
                   background: "#ffffff",
-                  borderLeft: "5px solid #2563eb !important",
+                  borderLeft: "5px solid #f07d00 !important",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                 }}
@@ -626,9 +643,9 @@ export default function App() {
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>TOTAL</span>
-                  <span className="badge" style={{ background: "#dbeafe", color: "#1d4ed8", fontSize: "0.68rem" }}>Área</span>
+                  <span className="badge" style={{ background: "#fff3e8", color: "#d66f00", fontSize: "0.68rem" }}>Área</span>
                 </div>
-                <strong className="fs-2 text-dark my-1" style={{ color: "#1e3a8a !important" }}>{resumen.total}</strong>
+                <strong className="fs-2 my-1" style={{ color: "#f07d00 !important" }}>{resumen.total}</strong>
                 <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Todas las tareas</span>
               </div>
             </div>
@@ -638,7 +655,7 @@ export default function App() {
                 className={`card card-body text-start border shadow-sm h-100 p-2 p-xl-3 ${filtros.estado === String(catalogo.estados.find(e => e.columna === "por_hacer" || e.columna === "en_espera")?.id || "") ? "border-warning" : ""}`}
                 style={{
                   background: "#ffffff",
-                  borderLeft: "5px solid #d97706 !important",
+                  borderLeft: "5px solid #7f7f7e !important",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                 }}
@@ -650,9 +667,9 @@ export default function App() {
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>PENDIENTES</span>
-                  <span className="badge" style={{ background: "#fef3c7", color: "#b45309", fontSize: "0.68rem" }}>Inicio/Espera</span>
+                  <span className="badge" style={{ background: "#f1f5f9", color: "#475569", fontSize: "0.68rem" }}>Inicio/Espera</span>
                 </div>
-                <strong className="fs-2 my-1" style={{ color: "#b45309" }}>{resumen.pendientes}</strong>
+                <strong className="fs-2 my-1" style={{ color: "#475569" }}>{resumen.pendientes}</strong>
                 <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Por iniciar o espera</span>
               </div>
             </div>
@@ -662,7 +679,7 @@ export default function App() {
                 className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
                   background: "#ffffff",
-                  borderLeft: "5px solid #0284c7 !important",
+                  borderLeft: "5px solid #f07d00 !important",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                 }}
@@ -674,9 +691,9 @@ export default function App() {
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>EN PROGRESO</span>
-                  <span className="badge" style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "0.68rem" }}>En curso</span>
+                  <span className="badge" style={{ background: "#fff3e8", color: "#d66f00", fontSize: "0.68rem" }}>En curso</span>
                 </div>
-                <strong className="fs-2 my-1" style={{ color: "#0369a1" }}>{resumen.progreso}</strong>
+                <strong className="fs-2 my-1" style={{ color: "#d66f00" }}>{resumen.progreso}</strong>
                 <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>En ejecución</span>
               </div>
             </div>
@@ -686,7 +703,7 @@ export default function App() {
                 className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
                   background: "#ffffff",
-                  borderLeft: "5px solid #059669 !important",
+                  borderLeft: "5px solid #94c11f !important",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                 }}
@@ -698,9 +715,9 @@ export default function App() {
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>COMPLETADAS</span>
-                  <span className="badge" style={{ background: "#d1fae5", color: "#047857", fontSize: "0.68rem" }}>Listas</span>
+                  <span className="badge" style={{ background: "#f2f8e3", color: "#4e6f05", fontSize: "0.68rem" }}>Listas</span>
                 </div>
-                <strong className="fs-2 my-1" style={{ color: "#047857" }}>{resumen.cerradas}</strong>
+                <strong className="fs-2 my-1" style={{ color: "#4e6f05" }}>{resumen.cerradas}</strong>
                 <span className="text-muted text-truncate" style={{ fontSize: "0.72rem" }}>Finalizadas</span>
               </div>
             </div>
@@ -710,16 +727,16 @@ export default function App() {
                 className="card card-body text-start border shadow-sm h-100 p-2 p-xl-3"
                 style={{
                   background: "#ffffff",
-                  borderLeft: "5px solid #7c3aed !important",
+                  borderLeft: "5px solid #94c11f !important",
                 }}
               >
                 <div className="d-flex justify-content-between align-items-center mb-1">
                   <span className="small fw-bold text-secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.03em" }}>CUMPLIMIENTO</span>
-                  <span className="badge" style={{ background: "#ede9fe", color: "#6d28d9", fontSize: "0.68rem" }}>Global</span>
+                  <span className="badge" style={{ background: "#f2f8e3", color: "#4e6f05", fontSize: "0.68rem" }}>Global</span>
                 </div>
-                <strong className="fs-2 my-1" style={{ color: "#6d28d9" }}>{resumen.cumplimiento}%</strong>
-                <div className="progress mt-1" style={{ height: 6, background: "#f3e8ff" }}>
-                  <div className="progress-bar" style={{ width: `${resumen.cumplimiento}%`, background: "#7c3aed" }}></div>
+                <strong className="fs-2 my-1" style={{ color: "#4e6f05" }}>{resumen.cumplimiento}%</strong>
+                <div className="progress mt-1" style={{ height: 6, background: "#f2f8e3" }}>
+                  <div className="progress-bar" style={{ width: `${resumen.cumplimiento}%`, background: "#94c11f" }}></div>
                 </div>
               </div>
             </div>

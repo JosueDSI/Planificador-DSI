@@ -1,21 +1,134 @@
-body {
-  background: #f4f6f9;
+:root {
+  --amphos-orange: #f07d00;
+  --amphos-orange-hover: #d66f00;
+  --amphos-orange-subtle: #fff3e8;
+  --amphos-orange-border: #fcd8b8;
+  --rsk-green: #94c11f;
+  --rsk-green-hover: #7eaa14;
+  --rsk-green-subtle: #f2f8e3;
+  --rsk-green-border: #cde688;
+  --slate-dark: #1e293b;
+  --slate-gray: #7f7f7e;
 }
 
+body {
+  background: #f8fafc;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Identidad de Marca: Botones */
+.btn-primary {
+  background-color: var(--amphos-orange) !important;
+  border-color: var(--amphos-orange) !important;
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: var(--amphos-orange-hover) !important;
+  border-color: var(--amphos-orange-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 0.25rem rgba(240, 125, 0, 0.25) !important;
+}
+
+.btn-outline-primary {
+  color: var(--amphos-orange) !important;
+  border-color: var(--amphos-orange) !important;
+  font-weight: 500;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+  background-color: var(--amphos-orange) !important;
+  border-color: var(--amphos-orange) !important;
+  color: #ffffff !important;
+}
+
+.btn-success {
+  background-color: var(--rsk-green) !important;
+  border-color: var(--rsk-green) !important;
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+.btn-success:hover,
+.btn-success:focus,
+.btn-success:active {
+  background-color: var(--rsk-green-hover) !important;
+  border-color: var(--rsk-green-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 0.25rem rgba(148, 193, 31, 0.25) !important;
+}
+
+.btn-outline-success {
+  color: var(--rsk-green-hover) !important;
+  border-color: var(--rsk-green) !important;
+  font-weight: 500;
+}
+
+.btn-outline-success:hover,
+.btn-outline-success:focus,
+.btn-outline-success:active {
+  background-color: var(--rsk-green) !important;
+  border-color: var(--rsk-green) !important;
+  color: #ffffff !important;
+}
+
+/* Formularios con borde e indicador naranja Amphos */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--amphos-orange) !important;
+  box-shadow: 0 0 0 0.22rem rgba(240, 125, 0, 0.2) !important;
+}
+
+/* Navegación por pestañas */
+.nav-pills .nav-link {
+  color: #475569;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  padding: 0.45rem 1rem;
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+  background-color: var(--amphos-orange-subtle);
+  color: var(--amphos-orange-hover);
+}
+
+.nav-pills .nav-link.active {
+  background-color: var(--amphos-orange) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 3px 8px rgba(240, 125, 0, 0.25);
+}
+
+/* Kanban y Tarjetas */
 .columna {
-  background: #eef1f6;
+  background: #f1f5f9;
   border-radius: 12px;
-  min-height: 240px;
+  min-height: 260px;
   padding: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .tarjeta {
   border-left-width: 4px;
   cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tarjeta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
 .tarjeta.vencida {
   background: #fff5f5;
+  border-left-color: #ef4444 !important;
 }
 
 .hora {
