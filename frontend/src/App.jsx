@@ -1092,7 +1092,12 @@ export default function App() {
 
       {/* Modal Crear / Editar Actividad */}
       {form && (
-        <div className="modal-backdrop-custom" onClick={() => setForm(null)}>
+        <div
+          className="modal-backdrop-custom"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setForm(null);
+          }}
+        >
           <div className="modal-dialog modal-lg w-100" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
             <form className="modal-solido" onSubmit={guardar}>
               <div className="modal-header d-flex justify-content-between align-items-center p-3 px-4">
@@ -1218,7 +1223,12 @@ export default function App() {
 
       {/* Modal Admin: Crear Usuario */}
       {mostrarCrearUsuario && (
-        <div className="modal-backdrop-custom" onClick={() => setMostrarCrearUsuario(false)}>
+        <div
+          className="modal-backdrop-custom"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMostrarCrearUsuario(false);
+          }}
+        >
           <div className="modal-dialog w-100" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <form className="modal-solido" onSubmit={handleCrearUsuario}>
               <div className="modal-header d-flex justify-content-between align-items-center p-3 px-4">
@@ -1317,7 +1327,12 @@ export default function App() {
 
       {/* Modal Admin: Recuperar / Restablecer Clave */}
       {mostrarRecuperarClave && (
-        <div className="modal-backdrop-custom" onClick={() => setMostrarRecuperarClave(false)}>
+        <div
+          className="modal-backdrop-custom"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMostrarRecuperarClave(false);
+          }}
+        >
           <div className="modal-dialog w-100" style={{ maxWidth: 500 }} onClick={(e) => e.stopPropagation()}>
             <form className="modal-solido" onSubmit={handleRecuperarClave}>
               <div className="modal-header d-flex justify-content-between align-items-center p-3 px-4">
