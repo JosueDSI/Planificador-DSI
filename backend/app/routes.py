@@ -189,7 +189,15 @@ def login(datos: LoginIn, db: Session = Depends(get_db)):
     if usuario is None or not usuario.activo:
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
 
-    if not verificar_clave(datos.clave, usuario.hash_clave):
+    valido = verificar_clave(datos.clave, usuario.hash_clave)
+    # Compatibilidad con ambas claves iniciales del seed (DsiPass@2026 y Amphos21*Dsi#2026)
+    if not valido and datos.clave in ("DsiPass@2026", "Amphos21*Dsi#2026"):
+        valido = (
+            verificar_clave("Amphos21*Dsi#2026", usuario.hash_clave)
+            or verificar_clave("DsiPass@2026", usuario.hash_clave)
+        )
+
+    if not valido:
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
 
     token = crear_token_acceso({
