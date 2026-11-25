@@ -194,3 +194,202 @@ body {
   border: 1px solid #cbd5e1 !important;
   color: #0f172a !important;
 }
+
+/* ==========================================================
+   ANIMACIÓN DE LLENADO LÍQUIDO DEL LOGO (WATER PHYSICS)
+   ========================================================== */
+.liquid-logo-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 0;
+}
+
+.liquid-logo-frame {
+  position: relative;
+  width: 250px;
+  height: 76px;
+  margin: 0 auto;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Capa Base: Logo tenue / marca de agua */
+.liquid-logo-frame .logo-layer-base {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0.2;
+  filter: grayscale(100%);
+}
+
+/* Contenedor del líquido ascendente */
+.liquid-fill-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  overflow: hidden;
+  transition: height 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Logo activo vibrante revelado por el agua */
+.liquid-fill-wrapper .logo-layer-active {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 250px;
+  height: 76px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 10px rgba(240, 125, 0, 0.4));
+}
+
+/* Superficie con oleaje y física de fluidos */
+.liquid-wave-surface {
+  position: absolute;
+  top: -12px;
+  left: 0;
+  width: 200%;
+  height: 24px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.liquid-wave {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.liquid-wave.wave-front {
+  fill: rgba(240, 125, 0, 0.75);
+  animation: waveDriftFront 1.8s infinite linear;
+}
+
+.liquid-wave.wave-back {
+  fill: rgba(217, 111, 0, 0.5);
+  animation: waveDriftBack 2.6s infinite linear;
+}
+
+@keyframes waveDriftFront {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes waveDriftBack {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* Burbujas flotantes de física líquida */
+.liquid-bubble {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: bubbleRise 1.8s infinite ease-in;
+}
+
+@keyframes bubbleRise {
+  0% {
+    bottom: -6px;
+    opacity: 0;
+    transform: scale(0.3) translateX(0);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    bottom: 95%;
+    opacity: 0;
+    transform: scale(1.1) translateX(6px);
+  }
+}
+
+/* Indicador de progreso de agua */
+.liquid-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--amphos-orange);
+  background: var(--amphos-orange-subtle);
+  border: 1px solid var(--amphos-orange-border);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  margin-top: 0.85rem;
+  box-shadow: 0 2px 6px rgba(240, 125, 0, 0.12);
+}
+
+.liquid-droplet {
+  display: inline-block;
+  animation: dropletBounce 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes dropletBounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-3px); }
+}
+
+/* ==========================================================
+   PREVISUALIZACIÓN DE CONTENEDORES SKELETON (FACEBOOK STYLE)
+   ========================================================== */
+.fb-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #eef2f6 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.fb-skeleton-shimmer::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.7) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: fbShimmerWave 1.4s infinite;
+  content: '';
+}
+
+@keyframes fbShimmerWave {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-box {
+  background: #e2e8f0;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.fade-in-content {
+  animation: fadeInApp 0.35s ease-out forwards;
+}
+
+@keyframes fadeInApp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

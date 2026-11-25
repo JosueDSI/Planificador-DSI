@@ -112,6 +112,121 @@ function Tarjeta({ actividad, onAbrir }) {
   );
 }
 
+function DashboardSkeleton() {
+  return (
+    <main className="container-fluid py-4" style={{ maxWidth: 1180 }}>
+      {/* Skeleton Header */}
+      <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-2 border-bottom">
+        <div className="d-flex align-items-center gap-3">
+          <div className="fb-skeleton-shimmer" style={{ width: 140, height: 38, borderRadius: 6 }}></div>
+          <div className="border-start ps-3" style={{ borderColor: "#e2e8f0" }}>
+            <div className="fb-skeleton-shimmer mb-1" style={{ width: 150, height: 20, borderRadius: 4 }}></div>
+            <div className="fb-skeleton-shimmer" style={{ width: 110, height: 12, borderRadius: 4 }}></div>
+          </div>
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <div className="fb-skeleton-shimmer" style={{ width: 180, height: 32, borderRadius: 6 }}></div>
+          <div className="fb-skeleton-shimmer" style={{ width: 120, height: 32, borderRadius: 6 }}></div>
+        </div>
+      </header>
+
+      {/* Skeleton Filter Card */}
+      <div className="card card-body mb-3 border-0 shadow-sm" style={{ background: "#ffffff" }}>
+        <div className="row g-2 align-items-center">
+          <div className="col-md">
+            <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 38, borderRadius: 6 }}></div>
+          </div>
+          <div className="col-md-2">
+            <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 38, borderRadius: 6 }}></div>
+          </div>
+          <div className="col-md-2">
+            <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 38, borderRadius: 6 }}></div>
+          </div>
+          <div className="col-md-2">
+            <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 38, borderRadius: 6 }}></div>
+          </div>
+          <div className="col-md-2">
+            <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 38, borderRadius: 6 }}></div>
+          </div>
+          <div className="col-md-auto">
+            <div className="fb-skeleton-shimmer" style={{ width: 140, height: 38, borderRadius: 6 }}></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Skeleton Nav Pills */}
+      <div className="d-flex gap-2 mb-3">
+        <div className="fb-skeleton-shimmer" style={{ width: 90, height: 36, borderRadius: 20 }}></div>
+        <div className="fb-skeleton-shimmer" style={{ width: 90, height: 36, borderRadius: 20 }}></div>
+        <div className="fb-skeleton-shimmer" style={{ width: 90, height: 36, borderRadius: 20 }}></div>
+      </div>
+
+      {/* Skeleton 6 KPI Cards */}
+      <div className="row g-2 g-xl-3 mb-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div className="col-6 col-md-4 col-xl-2" key={i}>
+            <div className="card card-body border shadow-sm h-100 p-2 p-xl-3" style={{ background: "#ffffff", minHeight: 115 }}>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <div className="fb-skeleton-shimmer" style={{ width: 50, height: 12, borderRadius: 4 }}></div>
+                <div className="fb-skeleton-shimmer" style={{ width: 40, height: 14, borderRadius: 10 }}></div>
+              </div>
+              <div className="fb-skeleton-shimmer my-1" style={{ width: 60, height: 34, borderRadius: 6 }}></div>
+              <div className="fb-skeleton-shimmer mt-auto" style={{ width: 85, height: 11, borderRadius: 4 }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Skeleton Charts Section */}
+      <div className="row g-3 mb-4">
+        <div className="col-md-6 col-lg-5">
+          <div className="card card-body border-0 shadow-sm h-100 p-3" style={{ background: "#ffffff" }}>
+            <div className="fb-skeleton-shimmer mb-2" style={{ width: 160, height: 18, borderRadius: 4 }}></div>
+            <div className="fb-skeleton-shimmer mb-3" style={{ width: 130, height: 12, borderRadius: 4 }}></div>
+            <div className="d-flex align-items-center justify-content-center py-2" style={{ height: 180 }}>
+              <div className="fb-skeleton-shimmer rounded-circle" style={{ width: 140, height: 140 }}></div>
+            </div>
+            <div className="row g-2 mt-2">
+              {[1, 2, 3, 4].map((j) => (
+                <div className="col-6" key={j}>
+                  <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 32, borderRadius: 6 }}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6 col-lg-7">
+          <div className="card card-body border-0 shadow-sm h-100 p-3" style={{ background: "#ffffff" }}>
+            <div className="fb-skeleton-shimmer mb-2" style={{ width: 180, height: 18, borderRadius: 4 }}></div>
+            <div className="fb-skeleton-shimmer mb-4" style={{ width: 140, height: 12, borderRadius: 4 }}></div>
+            <div className="d-flex flex-column gap-3">
+              {[1, 2, 3, 4].map((k) => (
+                <div key={k}>
+                  <div className="d-flex justify-content-between mb-1">
+                    <div className="fb-skeleton-shimmer" style={{ width: 120, height: 14, borderRadius: 4 }}></div>
+                    <div className="fb-skeleton-shimmer" style={{ width: 40, height: 14, borderRadius: 4 }}></div>
+                  </div>
+                  <div className="fb-skeleton-shimmer" style={{ width: "100%", height: 12, borderRadius: 6 }}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Skeleton Activity rows */}
+      <div className="card card-body border-0 shadow-sm p-3" style={{ background: "#ffffff" }}>
+        <div className="fb-skeleton-shimmer mb-3" style={{ width: 150, height: 18, borderRadius: 4 }}></div>
+        <div className="d-flex flex-column gap-2">
+          {[1, 2, 3].map((r) => (
+            <div className="fb-skeleton-shimmer" key={r} style={{ width: "100%", height: 48, borderRadius: 8 }}></div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export default function App() {
   const [catalogo, setCatalogo] = useState(null);
   const [actividades, setActividades] = useState([]);
@@ -132,6 +247,8 @@ export default function App() {
   const [formLogin, setFormLogin] = useState({ identificador: "", clave: "" });
   const [errorLogin, setErrorLogin] = useState("");
   const [cargandoLogin, setCargandoLogin] = useState(false);
+  const [liquidProgreso, setLiquidProgreso] = useState(0);
+  const [mostrarSkeleton, setMostrarSkeleton] = useState(false);
   const [verClaveLogin, setVerClaveLogin] = useState(false);
   const [verClaveNuevo, setVerClaveNuevo] = useState(false);
   const [verClaveRecuperar, setVerClaveRecuperar] = useState(false);
@@ -158,13 +275,6 @@ export default function App() {
     setActividades(datos.actividades);
     setHistorial(datos.historial);
     setError("");
-
-    // Si no hay usuario en sesión, sugerir admin o el primer usuario
-    if (!usuarioActual && datos.usuarios.length) {
-      const admin = datos.usuarios.find((u) => u.es_admin) || datos.usuarios[0];
-      setUsuarioActual(admin);
-      localStorage.setItem("planificador_user_session", JSON.stringify(admin));
-    }
   }
 
   useEffect(() => {
@@ -175,12 +285,37 @@ export default function App() {
     e.preventDefault();
     setErrorLogin("");
     setCargandoLogin(true);
+    setLiquidProgreso(12);
+
+    // Física de fluido que va llenando el logo en base a la duración de la carga
+    const intervalo = setInterval(() => {
+      setLiquidProgreso((prev) => {
+        if (prev >= 86) return prev;
+        const incremento = Math.max(1, Math.floor((88 - prev) * 0.16));
+        return Math.min(86, prev + incremento);
+      });
+    }, 70);
+
     try {
       const res = await api.login(formLogin.identificador, formLogin.clave);
+      clearInterval(intervalo);
+      // Culminación fluida de física de agua a 100%
+      setLiquidProgreso(100);
+      // Breve pausa para apreciar el llenado total del logo
+      await new Promise((r) => setTimeout(r, 450));
+
       setUsuarioActual(res.usuario);
       localStorage.setItem("planificador_user_session", JSON.stringify(res.usuario));
       setFormLogin({ identificador: "", clave: "" });
+
+      // Previsualización de contenedores estilo Facebook (Skeleton Shimmer)
+      setMostrarSkeleton(true);
+      setTimeout(() => {
+        setMostrarSkeleton(false);
+      }, 750);
     } catch (err) {
+      clearInterval(intervalo);
+      setLiquidProgreso(0);
       setErrorLogin(err.message);
     } finally {
       setCargandoLogin(false);
@@ -442,57 +577,105 @@ export default function App() {
     return (
       <main className="container d-flex align-items-center justify-content-center" style={{ minHeight: "85vh" }}>
         <div className="card card-body shadow-sm border-0 p-4" style={{ maxWidth: 420, width: "100%", borderRadius: 16, borderTop: "4px solid #f07d00" }}>
-          <div className="text-center mb-4">
-            <img
-              src="/static/amphos21-logo.png"
-              alt="Amphos 21 - an RSK company"
-              style={{ maxHeight: 52, maxWidth: "100%", objectFit: "contain" }}
-              className="mb-3"
-            />
-            <h1 className="h4 fw-bold mb-1 text-dark">Planificador DSI</h1>
-            <p className="text-secondary small mb-0">Departamento de Sistemas e Informática</p>
-          </div>
-          {errorLogin && <div className="alert alert-danger py-2 small">{errorLogin}</div>}
-          <form onSubmit={handleLogin}>
-            <div className="mb-3">
-              <label className="form-label small fw-semibold text-secondary">Correo corporativo o usuario</label>
-              <input
-                className="form-control"
-                required
-                placeholder="usuario@amphos21.com"
-                value={formLogin.identificador}
-                onChange={(e) => setFormLogin({ ...formLogin, identificador: e.target.value })}
-              />
-            </div>
-            <div className="mb-4">
-              <label className="form-label small fw-semibold text-secondary">Contraseña</label>
-              <div className="input-group">
-                <input
-                  type={verClaveLogin ? "text" : "password"}
-                  className="form-control"
-                  required
-                  placeholder="••••••••"
-                  value={formLogin.clave}
-                  onChange={(e) => setFormLogin({ ...formLogin, clave: e.target.value })}
+          {cargandoLogin ? (
+            <div className="liquid-logo-stage text-center py-4">
+              <div className="liquid-logo-frame mb-3">
+                {/* Capa base en escala de grises tenue */}
+                <img
+                  src="/static/amphos21-logo.png"
+                  alt="Amphos 21"
+                  className="logo-layer-base"
                 />
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={() => setVerClaveLogin(!verClaveLogin)}
-                  title={verClaveLogin ? "Ocultar contraseña" : "Ver contraseña"}
-                  tabIndex="-1"
-                >
-                  {verClaveLogin ? "🙈" : "👁️"}
-                </button>
+
+                {/* Capa de líquido ascendente con física de agua y olas */}
+                <div className="liquid-fill-wrapper" style={{ height: `${liquidProgreso}%` }}>
+                  <img
+                    src="/static/amphos21-logo.png"
+                    alt="Amphos 21"
+                    className="logo-layer-active"
+                  />
+                  {/* Superficie líquida con oleaje ondulante */}
+                  <div className="liquid-wave-surface">
+                    <svg className="liquid-wave wave-back" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                      <path d="M0,0 C150,90 350,-40 500,50 C650,120 900,10 1200,40 L1200,120 L0,120 Z"></path>
+                    </svg>
+                    <svg className="liquid-wave wave-front" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                      <path d="M0,20 C200,100 450,-30 700,60 C900,110 1050,20 1200,50 L1200,120 L0,120 Z"></path>
+                    </svg>
+                  </div>
+                  {/* Burbujas flotantes con física de ascenso */}
+                  <div className="liquid-bubble" style={{ width: 8, height: 8, left: "20%", animationDelay: "0s" }}></div>
+                  <div className="liquid-bubble" style={{ width: 12, height: 12, left: "50%", animationDelay: "0.6s" }}></div>
+                  <div className="liquid-bubble" style={{ width: 7, height: 7, left: "75%", animationDelay: "1.1s" }}></div>
+                </div>
               </div>
+
+              <div className="liquid-status-badge">
+                <span className="liquid-droplet">💧</span>
+                <span>Cargando perfil... {liquidProgreso}%</span>
+              </div>
+              <p className="text-secondary small mt-2 mb-0">Iniciando sesión segura en DSI</p>
             </div>
-            <button className="btn btn-primary w-100 py-2" type="submit" disabled={cargandoLogin}>
-              {cargandoLogin ? "Verificando..." : "Iniciar sesión"}
-            </button>
-          </form>
+          ) : (
+            <>
+              <div className="text-center mb-4">
+                <img
+                  src="/static/amphos21-logo.png"
+                  alt="Amphos 21 - an RSK company"
+                  style={{ maxHeight: 52, maxWidth: "100%", objectFit: "contain" }}
+                  className="mb-3"
+                />
+                <h1 className="h4 fw-bold mb-1 text-dark">Planificador DSI</h1>
+                <p className="text-secondary small mb-0">Departamento de Sistemas e Informática</p>
+              </div>
+              {errorLogin && <div className="alert alert-danger py-2 small">{errorLogin}</div>}
+              <form onSubmit={handleLogin}>
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold text-secondary">Correo corporativo o usuario</label>
+                  <input
+                    className="form-control"
+                    required
+                    placeholder="usuario@amphos21.com"
+                    value={formLogin.identificador}
+                    onChange={(e) => setFormLogin({ ...formLogin, identificador: e.target.value })}
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="form-label small fw-semibold text-secondary">Contraseña</label>
+                  <div className="input-group">
+                    <input
+                      type={verClaveLogin ? "text" : "password"}
+                      className="form-control"
+                      required
+                      placeholder="••••••••"
+                      value={formLogin.clave}
+                      onChange={(e) => setFormLogin({ ...formLogin, clave: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setVerClaveLogin(!verClaveLogin)}
+                      title={verClaveLogin ? "Ocultar contraseña" : "Ver contraseña"}
+                      tabIndex="-1"
+                    >
+                      {verClaveLogin ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+                </div>
+                <button className="btn btn-primary w-100 py-2" type="submit" disabled={cargandoLogin}>
+                  {cargandoLogin ? "Verificando..." : "Iniciar sesión"}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </main>
     );
+  }
+
+  // Previsualización de contenedores estilo Facebook si está activo el skeleton
+  if (mostrarSkeleton) {
+    return <DashboardSkeleton />;
   }
 
   const delDia = visibles.filter((item) => item.fecha === dia);
@@ -504,7 +687,7 @@ export default function App() {
   const editando = actividades.find((item) => item.id === editandoId);
 
   return (
-    <main className="container-fluid py-4" style={{ maxWidth: 1180 }}>
+    <main className="container-fluid py-4 fade-in-content" style={{ maxWidth: 1180 }}>
       {/* Barra superior con Identidad Amphos 21 y Auth */}
       <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-2 border-bottom">
         <div className="d-flex align-items-center gap-3">
