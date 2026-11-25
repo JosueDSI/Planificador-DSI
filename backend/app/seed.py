@@ -8,19 +8,14 @@ from .models import Actividad, Area, Categoria, Checklist, Comentario, Estado, H
 
 
 def cargar_demo(db: Session) -> None:
-    area_existente = db.scalar(select(Area).limit(1))
-    if area_existente:
-        if area_existente.jornada_inicio != time(8, 30) or area_existente.jornada_fin != time(18, 30):
-            area_existente.jornada_inicio = time(8, 30)
-            area_existente.jornada_fin = time(18, 30)
-            db.commit()
+    if db.scalar(select(Area.id).limit(1)):
         return
 
     area = Area(
         nombre="Departamento de Sistemas e Informática",
         clave="DSI",
-        jornada_inicio=time(8, 30),
-        jornada_fin=time(18, 30),
+        jornada_inicio=time(8, 0),
+        jornada_fin=time(17, 0),
         siguiente_numero=1,
     )
     db.add(area)
