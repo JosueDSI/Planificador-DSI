@@ -688,8 +688,9 @@ export default function App() {
   const editando = actividades.find((item) => item.id === editandoId);
 
   return (
-    <main className="container-fluid py-4 fade-in-content" style={{ maxWidth: 1180 }}>
-      {/* Barra superior con Identidad Amphos 21 y Auth */}
+    <>
+      <main className="container-fluid py-4 fade-in-content" style={{ maxWidth: 1180 }}>
+        {/* Barra superior con Identidad Amphos 21 y Auth */}
       <header className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-2 border-bottom">
         <div className="d-flex align-items-center gap-3">
           <img
@@ -1273,9 +1274,10 @@ export default function App() {
           ))}
         </section>
       )}
+    </main>
 
-      {/* Modal Crear / Editar Actividad */}
-      {form && (
+    {/* Modal Crear / Editar Actividad */}
+    {form && (
         <div
           className="modal-backdrop-custom"
           onClick={(e) => {
@@ -1573,6 +1575,6 @@ export default function App() {
           </div>
         </div>
       )}
-    </main>
+    </>
   );
 }
