@@ -61,8 +61,11 @@ def cargar_demo(db: Session) -> None:
     db.add_all([puesto_admin, puesto_gerente, puesto_dev, puesto_analista, puesto_soporte])
     db.flush()
 
-    # Clave inicial para todos los usuarios
-    clave_inicial = hashear_clave("DsiPass@2026")
+    import os
+
+    # Clave inicial configurable por entorno (C3)
+    clave_plana = os.getenv("INITIAL_USER_PASSWORD", "Amphos21*Dsi#2026")
+    clave_inicial = hashear_clave(clave_plana)
 
     personas = [
         ("Administrador", "admin@amphos21.com", "admin@amphos21.com", puesto_admin.id, True),
@@ -80,6 +83,7 @@ def cargar_demo(db: Session) -> None:
             hash_clave=clave_inicial,
             puesto_id=p_id,
             es_admin=es_adm,
+            debe_cambiar_clave=True,
         )
         db.add(usuario)
         usuarios[acceso] = usuario

@@ -43,6 +43,7 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(160), unique=True, nullable=False, default="")
     hash_clave: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     es_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    debe_cambiar_clave: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
 

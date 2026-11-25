@@ -1,15 +1,17 @@
 from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from .auth_utils import hashear_clave, verificar_clave
+from .auth_utils import crear_token_acceso, decodificar_token_acceso, hashear_clave, verificar_clave
 from .database import get_db
 from .models import Actividad, Area, Categoria, Checklist, Comentario, Estado, Historial, Prioridad, Puesto, Usuario
 from .schemas import ActividadIn, ComentarioIn, EstadoIn, LoginIn, RecuperarClaveIn, UsuarioCrearIn
 
 router = APIRouter(prefix="/api")
+oauth2_scheme = HTTPBearer(auto_error=False)
 
 
 def hhmm(valor: time) -> str:
@@ -29,6 +31,7 @@ def usuario_json(usuario: Usuario) -> dict:
         "usuario_acceso": usuario.usuario_acceso,
         "email": usuario.email,
         "es_admin": bool(usuario.es_admin),
+        "debe_cambiar_clave": bool(getattr(usuario, "debe_cambiar_clave", False)),
         "puesto_id": usuario.puesto_id,
         "puesto_nombre": usuario.puesto.nombre if usuario.puesto else None,
         "etiqueta_rol": etiqueta_rol(usuario),
@@ -110,6 +113,54 @@ def area_activa(db: Session) -> Area:
     return area
 
 
+def obtener_usuario_actual(
+    cred: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> Usuario:
+    """Valida el token Bearer y obtiene el usuario autenticado (C1, C4)."""
+    if cred is None or not cred.credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticación requerida. Inicie sesión para continuar.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    payload = decodificar_token_acceso(cred.credentials)
+    if payload is None or "sub" not in payload:
+        raise HTTPException(
+            status_code=401,
+            detail="Token de sesión inválido o expirado. Vuelva a iniciar sesión.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        usuario_id = int(payload["sub"])
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="Token no válido", headers={"WWW-Authenticate": "Bearer"})
+
+    usuario = db.get(Usuario, usuario_id)
+    if usuario is None or not usuario.activo:
+        raise HTTPException(
+            status_code=401,
+            detail="Usuario inactivo o no encontrado.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return usuario
+
+
+def requiere_admin(
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+) -> Usuario:
+    """Verifica que el usuario autenticado tenga rol de administrador (C1)."""
+    if not usuario_actual.es_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Acceso denegado: se requieren permisos de administrador.",
+        )
+    return usuario_actual
+
+
+# --- Rutas Públicas ---
+
+
 @router.get("/health")
 def estado_salud():
     return {"status": "ok"}
@@ -127,23 +178,6 @@ def obtener_area(db: Session = Depends(get_db)):
     }
 
 
-@router.get("/puestos")
-def listar_puestos(db: Session = Depends(get_db)):
-    puestos = db.scalars(select(Puesto).where(Puesto.activo.is_(True)).order_by(Puesto.nombre)).all()
-    return [{"id": puesto.id, "nombre": puesto.nombre} for puesto in puestos]
-
-
-@router.get("/usuarios")
-def listar_usuarios(db: Session = Depends(get_db)):
-    usuarios = db.scalars(
-        select(Usuario)
-        .where(Usuario.activo.is_(True))
-        .options(selectinload(Usuario.puesto), selectinload(Usuario.area))
-        .order_by(Usuario.nombre)
-    ).all()
-    return [usuario_json(usuario) for usuario in usuarios]
-
-
 @router.post("/login")
 def login(datos: LoginIn, db: Session = Depends(get_db)):
     ident = datos.identificador.strip().lower()
@@ -158,14 +192,57 @@ def login(datos: LoginIn, db: Session = Depends(get_db)):
     if not verificar_clave(datos.clave, usuario.hash_clave):
         raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
 
+    token = crear_token_acceso({
+        "sub": str(usuario.id),
+        "email": usuario.email,
+        "es_admin": bool(usuario.es_admin),
+    })
+
     return {
         "ok": True,
+        "token": token,
         "usuario": usuario_json(usuario),
     }
 
 
+# --- Rutas Autenticadas (C1, C4) ---
+
+
+@router.get("/me")
+def obtener_perfil_actual(usuario_actual: Usuario = Depends(obtener_usuario_actual)):
+    return usuario_json(usuario_actual)
+
+
+@router.get("/puestos")
+def listar_puestos(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    puestos = db.scalars(select(Puesto).where(Puesto.activo.is_(True)).order_by(Puesto.nombre)).all()
+    return [{"id": puesto.id, "nombre": puesto.nombre} for puesto in puestos]
+
+
+@router.get("/usuarios")
+def listar_usuarios(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    usuarios = db.scalars(
+        select(Usuario)
+        .where(Usuario.activo.is_(True))
+        .options(selectinload(Usuario.puesto), selectinload(Usuario.area))
+        .order_by(Usuario.nombre)
+    ).all()
+    return [usuario_json(usuario) for usuario in usuarios]
+
+
 @router.post("/usuarios", status_code=201)
-def crear_usuario(datos: UsuarioCrearIn, db: Session = Depends(get_db)):
+def crear_usuario(
+    datos: UsuarioCrearIn,
+    _admin: Usuario = Depends(requiere_admin),
+    db: Session = Depends(get_db),
+):
+    """Solo accesible por administradores autenticados (C1)."""
     area = area_activa(db)
     user_email = datos.email.strip().lower()
     user_acc = (datos.usuario_acceso or user_email).strip().lower()
@@ -198,30 +275,45 @@ def crear_usuario(datos: UsuarioCrearIn, db: Session = Depends(get_db)):
 
 
 @router.post("/usuarios/recuperar-clave")
-def recuperar_clave(datos: RecuperarClaveIn, db: Session = Depends(get_db)):
+def recuperar_clave(
+    datos: RecuperarClaveIn,
+    _admin: Usuario = Depends(requiere_admin),
+    db: Session = Depends(get_db),
+):
+    """Solo administradores autenticados pueden restablecer contraseñas (C1)."""
     usuario = db.get(Usuario, datos.usuario_id)
     if usuario is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     usuario.hash_clave = hashear_clave(datos.nueva_clave)
+    usuario.debe_cambiar_clave = True
     db.commit()
     return {"ok": True, "mensaje": f"Contraseña actualizada para {usuario.nombre}"}
 
 
 @router.get("/categorias")
-def listar_categorias(db: Session = Depends(get_db)):
+def listar_categorias(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
     categorias = db.scalars(select(Categoria).where(Categoria.activa.is_(True)).order_by(Categoria.nombre)).all()
     return [{"id": item.id, "nombre": item.nombre, "color": item.color} for item in categorias]
 
 
 @router.get("/prioridades")
-def listar_prioridades(db: Session = Depends(get_db)):
+def listar_prioridades(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
     prioridades = db.scalars(select(Prioridad).where(Prioridad.activa.is_(True)).order_by(Prioridad.orden)).all()
     return [{"id": item.id, "nombre": item.nombre, "orden": item.orden} for item in prioridades]
 
 
 @router.get("/estados")
-def listar_estados(db: Session = Depends(get_db)):
+def listar_estados(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
     estados = db.scalars(select(Estado).order_by(Estado.orden)).all()
     return [
         {"id": item.id, "nombre": item.nombre, "columna": item.columna, "orden": item.orden, "es_cierre": item.es_cierre}
@@ -230,7 +322,10 @@ def listar_estados(db: Session = Depends(get_db)):
 
 
 @router.get("/actividades")
-def listar_actividades(db: Session = Depends(get_db)):
+def listar_actividades(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
     actividades = db.scalars(
         select(Actividad)
         .options(
@@ -252,7 +347,10 @@ def listar_actividades(db: Session = Depends(get_db)):
 
 
 @router.get("/historial")
-def listar_historial(db: Session = Depends(get_db)):
+def listar_historial(
+    _usuario: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
     filas = db.scalars(
         select(Historial)
         .options(
@@ -279,16 +377,22 @@ def listar_historial(db: Session = Depends(get_db)):
 
 def exigir_usuario(db: Session, usuario_id: int, area_id: int) -> Usuario:
     usuario = db.get(Usuario, usuario_id)
-    if usuario is None or usuario.area_id != area_id:
-        raise HTTPException(status_code=400, detail="La persona no pertenece al área")
+    if usuario is None or usuario.area_id != area_id or not usuario.activo:
+        raise HTTPException(status_code=400, detail="La persona no pertenece al área o está inactiva")
     return usuario
 
 
 @router.post("/actividades", status_code=201)
-def crear_actividad(datos: ActividadIn, db: Session = Depends(get_db)):
+def crear_actividad(
+    datos: ActividadIn,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    """Crea actividad garantizando que reportado_por es el usuario autenticado (C2)."""
     validar_horario(datos.hora_inicio, datos.hora_fin)
     area = area_activa(db)
-    exigir_usuario(db, datos.reportado_por, area.id)
+    autor_id = usuario_actual.id
+
     if datos.asignado_a is not None:
         exigir_usuario(db, datos.asignado_a, area.id)
     if db.get(Categoria, datos.categoria_id) is None or db.get(Prioridad, datos.prioridad_id) is None or db.get(Estado, datos.estado_id) is None:
@@ -306,27 +410,32 @@ def crear_actividad(datos: ActividadIn, db: Session = Depends(get_db)):
         fecha=datos.fecha,
         hora_inicio=datos.hora_inicio,
         hora_fin=datos.hora_fin,
-        reportado_por=datos.reportado_por,
+        reportado_por=autor_id,
         asignado_a=datos.asignado_a,
         posicion=area.siguiente_numero,
     )
     area.siguiente_numero += 1
     for indice, item in enumerate(datos.checklist, start=1):
         actividad.checklist.append(Checklist(texto=item.texto.strip(), hecho=item.hecho, orden=indice))
-    actividad.historial.append(Historial(autor_id=datos.reportado_por, campo="alta", valor_nuevo=actividad.titulo))
+    actividad.historial.append(Historial(autor_id=autor_id, campo="alta", valor_nuevo=actividad.titulo))
     db.add(actividad)
     db.commit()
     return actividad_json(cargar_actividad(db, actividad.id))
 
 
 @router.put("/actividades/{actividad_id}")
-def actualizar_actividad(actividad_id: int, datos: ActividadIn, db: Session = Depends(get_db)):
+def actualizar_actividad(
+    actividad_id: int,
+    datos: ActividadIn,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    """Actualiza actividad asegurando que el historial use al usuario autenticado (C2)."""
     validar_horario(datos.hora_inicio, datos.hora_fin)
     actividad = db.get(Actividad, actividad_id)
     if actividad is None:
         raise HTTPException(status_code=404, detail="Actividad no encontrada")
     area = area_activa(db)
-    exigir_usuario(db, datos.reportado_por, area.id)
     if datos.asignado_a is not None:
         exigir_usuario(db, datos.asignado_a, area.id)
     if db.get(Categoria, datos.categoria_id) is None or db.get(Prioridad, datos.prioridad_id) is None or db.get(Estado, datos.estado_id) is None:
@@ -351,7 +460,6 @@ def actualizar_actividad(actividad_id: int, datos: ActividadIn, db: Session = De
     actividad.fecha = datos.fecha
     actividad.hora_inicio = datos.hora_inicio
     actividad.hora_fin = datos.hora_fin
-    actividad.reportado_por = datos.reportado_por
     actividad.asignado_a = datos.asignado_a
     actividad.actualizado_en = datetime.now()
     actividad.checklist.clear()
@@ -359,26 +467,30 @@ def actualizar_actividad(actividad_id: int, datos: ActividadIn, db: Session = De
     for indice, item in enumerate(datos.checklist, start=1):
         actividad.checklist.append(Checklist(texto=item.texto.strip(), hecho=item.hecho, orden=indice))
     for campo, anterior, nuevo in cambios:
-        actividad.historial.append(Historial(autor_id=datos.reportado_por, campo=campo, valor_anterior=anterior, valor_nuevo=nuevo))
+        actividad.historial.append(Historial(autor_id=usuario_actual.id, campo=campo, valor_anterior=anterior, valor_nuevo=nuevo))
     db.commit()
     return actividad_json(cargar_actividad(db, actividad.id))
 
 
 @router.patch("/actividades/{actividad_id}/estado")
-def mover_actividad(actividad_id: int, datos: EstadoIn, db: Session = Depends(get_db)):
+def mover_actividad(
+    actividad_id: int,
+    datos: EstadoIn,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    """Mueve el estado de una actividad registrando al usuario autenticado (C2)."""
     actividad = db.get(Actividad, actividad_id)
     nuevo = db.get(Estado, datos.estado_id)
     if actividad is None or nuevo is None:
         raise HTTPException(status_code=404, detail="Actividad o estado no encontrado")
-    if datos.autor_id is not None:
-        exigir_usuario(db, datos.autor_id, actividad.area_id)
     anterior = db.get(Estado, actividad.estado_id)
     if actividad.estado_id != nuevo.id:
         actividad.estado_id = nuevo.id
         actividad.actualizado_en = datetime.now()
         actividad.historial.append(
             Historial(
-                autor_id=datos.autor_id,
+                autor_id=usuario_actual.id,
                 campo="estado",
                 valor_anterior=anterior.nombre if anterior else "",
                 valor_nuevo=nuevo.nombre,
@@ -389,20 +501,32 @@ def mover_actividad(actividad_id: int, datos: EstadoIn, db: Session = Depends(ge
 
 
 @router.post("/actividades/{actividad_id}/comentarios", status_code=201)
-def comentar(actividad_id: int, datos: ComentarioIn, db: Session = Depends(get_db)):
+def comentar(
+    actividad_id: int,
+    datos: ComentarioIn,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    """Agrega comentario asociando autor_id al usuario autenticado (C2)."""
     actividad = db.get(Actividad, actividad_id)
     if actividad is None:
         raise HTTPException(status_code=404, detail="Actividad no encontrada")
-    exigir_usuario(db, datos.autor_id, actividad.area_id)
-    db.add(Comentario(actividad_id=actividad.id, autor_id=datos.autor_id, cuerpo=datos.cuerpo.strip()))
+    db.add(Comentario(actividad_id=actividad.id, autor_id=usuario_actual.id, cuerpo=datos.cuerpo.strip()))
     db.commit()
     return actividad_json(cargar_actividad(db, actividad.id))
 
 
 @router.delete("/actividades/{actividad_id}", status_code=204)
-def eliminar_actividad(actividad_id: int, db: Session = Depends(get_db)):
+def eliminar_actividad(
+    actividad_id: int,
+    usuario_actual: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    """Solo administradores o el creador pueden eliminar actividades (C1)."""
     actividad = db.get(Actividad, actividad_id)
     if actividad is None:
         raise HTTPException(status_code=404, detail="Actividad no encontrada")
+    if not usuario_actual.es_admin and actividad.reportado_por != usuario_actual.id:
+        raise HTTPException(status_code=403, detail="Permisos insuficientes para eliminar la actividad")
     db.delete(actividad)
     db.commit()

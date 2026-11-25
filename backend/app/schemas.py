@@ -30,7 +30,7 @@ class ActividadIn(BaseModel):
     fecha: date
     hora_inicio: time
     hora_fin: time
-    reportado_por: int
+    reportado_por: int | None = None
     asignado_a: int | None = None
     checklist: list[ChecklistIn] = []
 
@@ -44,7 +44,7 @@ class ActividadIn(BaseModel):
 
 
 class ComentarioIn(BaseModel):
-    autor_id: int
+    autor_id: int | None = None
     cuerpo: str = Field(min_length=1, max_length=1000)
 
     @field_validator("cuerpo")
