@@ -67,3 +67,7 @@ if not os.path.exists(_dir_estatica):
     os.makedirs(_dir_estatica, exist_ok=True)
 app.mount("/static", StaticFiles(directory=_dir_estatica), name="static")
 
+_dir_assets = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist", "assets"))
+if os.path.exists(_dir_assets):
+    app.mount("/assets", StaticFiles(directory=_dir_assets), name="assets")
+
