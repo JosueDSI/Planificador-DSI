@@ -57,6 +57,7 @@ async def asegurar_bd(request, call_next):
     return await call_next(request)
 
 
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 app.include_router(router)
@@ -67,7 +68,18 @@ if not os.path.exists(_dir_estatica):
     os.makedirs(_dir_estatica, exist_ok=True)
 app.mount("/static", StaticFiles(directory=_dir_estatica), name="static")
 
-_dir_assets = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist", "assets"))
+_dir_frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+_dir_assets = os.path.join(_dir_frontend_dist, "assets")
 if os.path.exists(_dir_assets):
     app.mount("/assets", StaticFiles(directory=_dir_assets), name="assets")
+
+_index_html = os.path.join(_dir_frontend_dist, "index.html")
+
+
+@app.get("/{full_path:path}")
+async def servir_frontend_spa(full_path: str):
+    if os.path.exists(_index_html):
+        return FileResponse(_index_html)
+    return {"status": "ok", "message": "Planificador DSI API activo"}
+
 
