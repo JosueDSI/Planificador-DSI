@@ -60,7 +60,9 @@ def asegurar_base_de_datos_postgres(postgres_url: str) -> None:
 
 def migrar(postgres_url: str) -> None:
     if postgres_url.startswith("postgres://"):
-        postgres_url = postgres_url.replace("postgres://", "postgresql://", 1)
+        postgres_url = postgres_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif postgres_url.startswith("postgresql://") and not postgres_url.startswith("postgresql+"):
+        postgres_url = postgres_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
     sqlite_path = Path(__file__).resolve().parent.parent / "backend" / "data" / "planificador.db"
     if not sqlite_path.exists():

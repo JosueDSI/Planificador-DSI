@@ -9,7 +9,9 @@ def _resolver_database_url() -> str:
     env_url = os.getenv("DATABASE_URL", "").strip()
     if env_url:
         if env_url.startswith("postgres://"):
-            return env_url.replace("postgres://", "postgresql://", 1)
+            return env_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        if env_url.startswith("postgresql://") and not env_url.startswith("postgresql+"):
+            return env_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         return env_url
 
     if os.getenv("VERCEL"):
