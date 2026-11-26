@@ -1,8 +1,8 @@
-"""Script para exportar la base de datos de Planificador DSI a archivos SQL (MSSQL y PostgreSQL/Estándar).
+"""Script para exportar la base de datos de Planificador DSI a archivos SQL (MSSQL y PostgreSQL).
 
 Genera:
-1. planificador_dsi_mssql.sql (Listo para ejecutar en SQL Server / SSMS / VS Code MSSQL)
-2. planificador_dsi_postgres.sql (Listo para ejecutar en PostgreSQL / Supabase / Neon)
+1. planificador_dsi_mssql.sql (Microsoft SQL Server / T-SQL)
+2. planificador_dsi_postgres.sql (PostgreSQL / Neon / Supabase / pgAdmin)
 """
 
 import os
@@ -82,7 +82,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "",
         "-- 1. CREACION DE TABLAS",
         "",
-        "-- TABLA: area",
         "IF OBJECT_ID(N'dbo.area', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.area (",
@@ -97,7 +96,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: puesto",
         "IF OBJECT_ID(N'dbo.puesto', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.puesto (",
@@ -108,7 +106,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: usuario",
         "IF OBJECT_ID(N'dbo.usuario', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.usuario (",
@@ -127,7 +124,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: categoria",
         "IF OBJECT_ID(N'dbo.categoria', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.categoria (",
@@ -140,7 +136,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: prioridad",
         "IF OBJECT_ID(N'dbo.prioridad', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.prioridad (",
@@ -152,7 +147,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: estado",
         "IF OBJECT_ID(N'dbo.estado', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.estado (",
@@ -165,7 +159,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: actividad",
         "IF OBJECT_ID(N'dbo.actividad', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.actividad (",
@@ -191,7 +184,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: checklist",
         "IF OBJECT_ID(N'dbo.checklist', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.checklist (",
@@ -204,7 +196,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: comentario",
         "IF OBJECT_ID(N'dbo.comentario', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.comentario (",
@@ -217,7 +208,6 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
         "END",
         "GO",
         "",
-        "-- TABLA: historial",
         "IF OBJECT_ID(N'dbo.historial', N'U') IS NULL",
         "BEGIN",
         "    CREATE TABLE dbo.historial (",
@@ -260,7 +250,153 @@ def generar_sql_mssql(sqlite_path: Path, salida_path: Path) -> None:
             lineas.append("")
 
     salida_path.write_text("\n".join(lineas), encoding="utf-8")
-    print(f"Archivo MSSQL generado exitosamente en: {salida_path}")
+    print(f"Archivo MSSQL generado: {salida_path}")
+
+
+def generar_sql_postgres(sqlite_path: Path, salida_path: Path) -> None:
+    engine = create_engine(f"sqlite:///{sqlite_path.as_posix()}")
+
+    lineas = [
+        "-- ========================================================",
+        "-- PLANIFICADOR DSI - SCRIPT DE CREACION Y DATOS PARA POSTGRESQL",
+        f"-- Generado automaticamente: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "-- Compatible con PostgreSQL 13, 14, 15, 16, Supabase, Neon, Railway",
+        "-- ========================================================",
+        "",
+        "-- 1. CREACION DE TABLAS",
+        "",
+        "CREATE TABLE IF NOT EXISTS area (",
+        "    id SERIAL PRIMARY KEY,",
+        "    nombre VARCHAR(160) NOT NULL,",
+        "    clave VARCHAR(20) NOT NULL UNIQUE,",
+        "    jornada_inicio TIME NOT NULL,",
+        "    jornada_fin TIME NOT NULL,",
+        "    siguiente_numero INTEGER NOT NULL DEFAULT 1,",
+        "    activa BOOLEAN NOT NULL DEFAULT TRUE",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS puesto (",
+        "    id SERIAL PRIMARY KEY,",
+        "    nombre VARCHAR(80) NOT NULL UNIQUE,",
+        "    activo BOOLEAN NOT NULL DEFAULT TRUE",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS usuario (",
+        "    id SERIAL PRIMARY KEY,",
+        "    area_id INTEGER NOT NULL REFERENCES area(id),",
+        "    puesto_id INTEGER REFERENCES puesto(id),",
+        "    nombre VARCHAR(120) NOT NULL,",
+        "    usuario_acceso VARCHAR(60) NOT NULL UNIQUE,",
+        "    email VARCHAR(160) NOT NULL UNIQUE,",
+        "    hash_clave VARCHAR(255) NOT NULL,",
+        "    es_admin BOOLEAN NOT NULL DEFAULT FALSE,",
+        "    debe_cambiar_clave BOOLEAN NOT NULL DEFAULT FALSE,",
+        "    activo BOOLEAN NOT NULL DEFAULT TRUE,",
+        "    creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS categoria (",
+        "    id SERIAL PRIMARY KEY,",
+        "    area_id INTEGER NOT NULL REFERENCES area(id),",
+        "    nombre VARCHAR(80) NOT NULL,",
+        "    color VARCHAR(7) NOT NULL DEFAULT '#64748b',",
+        "    activa BOOLEAN NOT NULL DEFAULT TRUE",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS prioridad (",
+        "    id SERIAL PRIMARY KEY,",
+        "    nombre VARCHAR(40) NOT NULL UNIQUE,",
+        "    orden INTEGER NOT NULL,",
+        "    activa BOOLEAN NOT NULL DEFAULT TRUE",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS estado (",
+        "    id SERIAL PRIMARY KEY,",
+        "    nombre VARCHAR(40) NOT NULL UNIQUE,",
+        "    columna VARCHAR(20) NOT NULL,",
+        "    orden INTEGER NOT NULL,",
+        "    es_cierre BOOLEAN NOT NULL DEFAULT FALSE",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS actividad (",
+        "    id SERIAL PRIMARY KEY,",
+        "    area_id INTEGER NOT NULL REFERENCES area(id),",
+        "    numero INTEGER NOT NULL,",
+        "    titulo VARCHAR(180) NOT NULL,",
+        "    descripcion VARCHAR(1000) NOT NULL DEFAULT '',",
+        "    observaciones VARCHAR(1000) NOT NULL DEFAULT '',",
+        "    categoria_id INTEGER NOT NULL REFERENCES categoria(id),",
+        "    prioridad_id INTEGER NOT NULL REFERENCES prioridad(id),",
+        "    estado_id INTEGER NOT NULL REFERENCES estado(id),",
+        "    fecha DATE NOT NULL,",
+        "    hora_inicio TIME NOT NULL,",
+        "    hora_fin TIME NOT NULL,",
+        "    reportado_por INTEGER NOT NULL REFERENCES usuario(id),",
+        "    asignado_a INTEGER REFERENCES usuario(id),",
+        "    posicion INTEGER NOT NULL DEFAULT 0,",
+        "    creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),",
+        "    actualizado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),",
+        "    CONSTRAINT uq_actividad_numero UNIQUE (area_id, numero)",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS checklist (",
+        "    id SERIAL PRIMARY KEY,",
+        "    actividad_id INTEGER NOT NULL REFERENCES actividad(id) ON DELETE CASCADE,",
+        "    texto VARCHAR(200) NOT NULL,",
+        "    hecho BOOLEAN NOT NULL DEFAULT FALSE,",
+        "    orden INTEGER NOT NULL DEFAULT 0",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS comentario (",
+        "    id SERIAL PRIMARY KEY,",
+        "    actividad_id INTEGER NOT NULL REFERENCES actividad(id) ON DELETE CASCADE,",
+        "    autor_id INTEGER NOT NULL REFERENCES usuario(id),",
+        "    cuerpo VARCHAR(1000) NOT NULL,",
+        "    creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()",
+        ");",
+        "",
+        "CREATE TABLE IF NOT EXISTS historial (",
+        "    id SERIAL PRIMARY KEY,",
+        "    actividad_id INTEGER NOT NULL REFERENCES actividad(id) ON DELETE CASCADE,",
+        "    autor_id INTEGER REFERENCES usuario(id),",
+        "    campo VARCHAR(40) NOT NULL,",
+        "    valor_anterior VARCHAR(200) NOT NULL DEFAULT '',",
+        "    valor_nuevo VARCHAR(200) NOT NULL DEFAULT '',",
+        "    creado_en TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()",
+        ");",
+        "",
+        "-- 2. INSERCION DE DATOS ACTUALES",
+        "",
+    ]
+
+    with Session(engine) as sesion:
+        for modelo in MODELOS_ORDENADOS:
+            tabla = modelo.__tablename__
+            columnas = [c.name for c in modelo.__table__.columns]
+            cols_str = ", ".join([f'"{c}"' for c in columnas])
+            registros = sesion.scalars(select(modelo)).all()
+
+            if not registros:
+                continue
+
+            lineas.append(f"-- Datos para la tabla: {tabla} ({len(registros)} registros)")
+            for item in registros:
+                valores = [formatear_valor_sql(getattr(item, col), dialect="postgres") for col in columnas]
+                vals_str = ", ".join(valores)
+                lineas.append(f'INSERT INTO "{tabla}" ({cols_str}) VALUES ({vals_str}) ON CONFLICT DO NOTHING;')
+
+            lineas.append("")
+
+        # Actualizar secuencias
+        lineas.append("-- 3. ACTUALIZAR SECUENCIAS AUTO-INCREMENTALES")
+        for modelo in MODELOS_ORDENADOS:
+            tabla = modelo.__tablename__
+            lineas.append(
+                f"SELECT setval(pg_get_serial_sequence('{tabla}', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {tabla};"
+            )
+
+    salida_path.write_text("\n".join(lineas), encoding="utf-8")
+    print(f"Archivo PostgreSQL generado: {salida_path}")
 
 
 def main():
@@ -273,6 +409,9 @@ def main():
 
     salida_mssql = base_dir / "planificador_dsi_mssql.sql"
     generar_sql_mssql(sqlite_path, salida_mssql)
+
+    salida_pg = base_dir / "planificador_dsi_postgres.sql"
+    generar_sql_postgres(sqlite_path, salida_pg)
 
 
 if __name__ == "__main__":
