@@ -1,6 +1,30 @@
 import os
 from pathlib import Path
 
+# Cargar automáticamente variables de archivo .env si existe
+def _cargar_env():
+    posibles_env = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parent.parent.parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    for ruta in posibles_env:
+        if ruta.is_file():
+            try:
+                for linea in ruta.read_text(encoding="utf-8").splitlines():
+                    linea = linea.strip()
+                    if linea and not linea.startswith("#") and "=" in linea:
+                        k, v = linea.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+                break
+            except Exception:
+                pass
+
+_cargar_env()
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 

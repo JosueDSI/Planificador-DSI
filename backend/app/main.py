@@ -20,6 +20,9 @@ def inicializar_bd() -> None:
     with _init_lock:
         if _inicializado:
             return
+        import logging
+        motor = "PostgreSQL" if "postgresql" in engine.url.drivername else ("MSSQL" if "mssql" in engine.url.drivername else "SQLite")
+        logging.getLogger("uvicorn.error").info(f"===> BASE DE DATOS CONECTADA: {motor} ({engine.url.render_as_string(hide_password=True)}) <===")
         Base.metadata.create_all(engine)
         db = SessionLocal()
         try:
