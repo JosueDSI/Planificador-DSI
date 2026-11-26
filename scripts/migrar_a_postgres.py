@@ -30,6 +30,34 @@ from backend.app.models import (
 )
 
 
+def asegurar_base_de_datos_postgres(postgres_url: str) -> None:
+    """Si la base de datos no existe en PostgreSQL, se conecta a 'postgres' y la crea."""
+    try:
+        partes = postgres_url.split("/")
+        nombre_bd = partes[-1].split("?")[0]
+        if not nombre_bd or nombre_bd == "postgres":
+            return
+
+        url_mantenimiento = "/".join(partes[:-1]) + "/postgres"
+        if "?" in partes[-1]:
+            url_mantenimiento += "?" + partes[-1].split("?")[1]
+
+        engine_maint = create_engine(url_mantenimiento, isolation_level="AUTOCOMMIT")
+        with engine_maint.connect() as conn:
+            existe = conn.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :nombre"),
+                {"nombre": nombre_bd},
+            ).scalar()
+            if not existe:
+                print(f"-> Creando base de datos [{nombre_bd}] en PostgreSQL...")
+                conn.execute(text(f'CREATE DATABASE "{nombre_bd}"'))
+                print(f"-> Base de datos [{nombre_bd}] creada exitosamente.")
+            else:
+                print(f"-> Base de datos [{nombre_bd}] ya existe en PostgreSQL.")
+    except Exception as e:
+        print(f"Nota: Verificación automática de base de datos ({e}). Se intentará conexión directa.")
+
+
 def migrar(postgres_url: str) -> None:
     if postgres_url.startswith("postgres://"):
         postgres_url = postgres_url.replace("postgres://", "postgresql://", 1)
@@ -39,13 +67,16 @@ def migrar(postgres_url: str) -> None:
         print(f"Error: No se encontró la base SQLite en {sqlite_path}")
         sys.exit(1)
 
-    print(f"1. Conectando a SQLite: {sqlite_path}")
+    print(f"1. Verificando/Creando base de datos en PostgreSQL...")
+    asegurar_base_de_datos_postgres(postgres_url)
+
+    print(f"2. Conectando a SQLite: {sqlite_path}")
     engine_sqlite = create_engine(f"sqlite:///{sqlite_path.as_posix()}")
 
-    print(f"2. Conectando a PostgreSQL...")
+    print(f"3. Conectando a PostgreSQL...")
     engine_pg = create_engine(postgres_url, pool_pre_ping=True)
 
-    print("3. Creando tablas en PostgreSQL si no existen...")
+    print("4. Creando tablas en PostgreSQL si no existen...")
     Base.metadata.create_all(engine_pg)
 
     # Orden de migración respetando claves foráneas
@@ -69,12 +100,10 @@ def migrar(postgres_url: str) -> None:
             print(f"   -> Migrando {tabla}: {len(registros)} registros encontrados...")
 
             for item in registros:
-                # Extraer atributos como diccionario
                 datos = {
                     col.name: getattr(item, col.name)
                     for col in item.__table__.columns
                 }
-                # Verificar si ya existe por ID para evitar duplicados
                 existente = sesion_pg.get(modelo, datos["id"])
                 if not existente:
                     nuevo = modelo(**datos)
@@ -82,25 +111,25 @@ def migrar(postgres_url: str) -> None:
 
             sesion_pg.commit()
 
-        print("4. Actualizando secuencias de IDs en PostgreSQL...")
+        print("5. Actualizando secuencias de IDs en PostgreSQL...")
         for modelo in modelos:
             tabla = modelo.__tablename__
             try:
                 sql = text(f"SELECT setval(pg_get_serial_sequence('{tabla}', 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {tabla};")
                 sesion_pg.execute(sql)
                 sesion_pg.commit()
-            except Exception as e:
-                # Si no usa secuencia serial estándar
+            except Exception:
                 pass
 
-    print("\n¡Migración a PostgreSQL completada con éxito!")
+    print("\n" + "=" * 50)
+    print("¡Migración a PostgreSQL completada con éxito!")
+    print("=" * 50 + "\n")
 
 
 if __name__ == "__main__":
     url = sys.argv[1] if len(sys.argv) > 1 else os.getenv("DATABASE_URL_POSTGRES", os.getenv("DATABASE_URL", ""))
-    if not url or "sqlite" in url:
-        print("Uso: python scripts/migrar_a_postgres.py postgresql://usuario:password@host:5432/nombre_bd")
-        print("O exporte DATABASE_URL_POSTGRES con la cadena de conexión de Neon, Supabase, Vercel Postgres, etc.")
+    if not url:
+        print("Uso: python scripts/migrar_a_postgres.py <POSTGRES_URL>")
         sys.exit(1)
 
     migrar(url)
